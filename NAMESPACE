@@ -1,0 +1,57 @@
+import(network,ergm,statnet.common)
+importFrom(stats, na.omit, simulate, aggregate, as.formula, cov, na.fail,
+             quantile, sd, setNames, var)
+importFrom(coda,nchain)
+importFrom(RColorBrewer, brewer.pal)
+importFrom(utils, head, modifyList)
+importFrom(grDevices, colorRampPalette)
+importFrom(graphics, arrows, barplot, legend, points)
+
+exportPattern("^[^\\.]")
+## export(
+##   as.egodata,
+##   as.egodata.data.frame,
+##   as.egodata.network,  
+##   as.network.egodata,
+##   category.weights.egodata,
+##   control.simulate.ergm.ego ,
+##   dim.egodata,
+##   dimnames.egodata,
+##   '[.egodata',
+##   EgoStat.absdiff,
+##   EgoStat.concurrent,
+##   EgoStat.concurrentties  ,  
+##   EgoStat.degrange,
+##   EgoStat.degree,
+##   EgoStat.degreepopularity,
+##   EgoStat.edges,
+##   EgoStat.nodecov,
+##   EgoStat.nodefactor,   
+##   EgoStat.nodematch,
+##   ergm.ego,
+##   na.omit.egodata  ,         
+##   reweight.egodata,
+##   sample,
+##   sample.default,
+##   sample.egodata,
+##   simulate.ergm.ego,
+##   subset.egodata,
+##   summary.statistics.egodata
+## )
+
+## # register S3 methods
+S3method(as.egodata,data.frame)
+S3method(as.egodata,network)
+S3method(as.network,egodata)
+S3method(dim,egodata) 
+S3method(dimnames,egodata)
+S3method(gof.ergm,ego)
+S3method(na.omit,egodata)
+S3method(head,egodata)
+S3method(print,summary.ergm.ego, .print.summary.ergm.ego)
+S3method(sample,default)
+S3method(sample,egodata )
+S3method(simulate,ergm.ego )
+S3method(subset,egodata)
+S3method(summary,ergm.ego, .summary.ergm.ego)
+S3method(summary.statistics,egodata)
