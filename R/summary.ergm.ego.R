@@ -5,10 +5,12 @@
 #  open source, and has the attribution requirements (GPL Section 7) at
 #  http://statnet.org/attribution
 #
-#  Copyright 2015-2016 Statnet Commons
+#  Copyright 2015-2018 Statnet Commons
 #######################################################################
 ## A thin wrapper around summary.ergm to get rid of a spurious error message.
-.summary.ergm.ego <- function (object, ..., 
+#' @method summary ergm.ego
+#' @export
+summary.ergm.ego <- function (object, ..., 
                           digits = max(3, getOption("digits") - 3),
                           correlation=FALSE, covariance=FALSE,
                           total.variation=TRUE){
@@ -18,7 +20,10 @@
   summ
 }
 
-.print.summary.ergm.ego <- function (x, ...){
-  print.summary.ergm(x, ..., print.deviances=FALSE)
+#' @method print summary.ergm.ego
+#' @export
+print.summary.ergm.ego <- function (x, ...){
+  class(x) <- "summary.ergm"
+  NextMethod("print", object=x, ..., print.deviances=FALSE)
 }
 

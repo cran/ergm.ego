@@ -5,13 +5,72 @@
 #  open source, and has the attribution requirements (GPL Section 7) at
 #  http://statnet.org/attribution
 #
-#  Copyright 2015-2016 Statnet Commons
+#  Copyright 2015-2018 Statnet Commons
 #######################################################################
 # An EgoStat.* function takes the data frame of egos, a data frame of
 # alters, and the arguments passed to the corresponding ERGM terms,
 # and returns a matrix of h(e[i]) values, with egos in rows and
 # elements of h(e[i]) in columns.
 
+#' \code{\link[ergm]{ergm}} Terms Implemented for
+#' \code{\link[=egodata.object]{egodata}}
+#' 
+#' This page describes the \code{\link[ergm]{ergm}} terms (and hence network
+#' statistics) for which inference based on egocentrically sampled data is
+#' implemented in \code{ergm.ego} package. Other packages may add their own
+#' terms.
+#' 
+#' The current recommendation for any package implementing additional
+#' egocentric calculator terms is to create a help file with a name or alias
+#' \code{ergm.egodata-terms}, so that \code{help("ergm.egodata-terms")} will
+#' list egocentric ERGM terms available from all loaded packages.
+#' 
+#' 
+#' @name ergm.ego-terms
+#' 
+#' @aliases ergm.ego-terms terms-ergm.ego ergm.ego.terms
+#'   terms.ergm.ego ergm-terms ergm.terms terms-ergm terms.ergm
+#'   EgoStat EgoStat.offset EgoStat.edges EgoStat.nodecov
+#'   EgoStat.nodefactor EgoStat.nodematch EgoStat.nodemix
+#'   EgoStat.absdiff EgoStat.degree EgoStat.degrange
+#'   EgoStat.concurrent EgoStat.concurrentties EgoStat.degree1.5
+#'   EgoStat.mm EgoStat.mean.age netsize.adj InitErgmTerm.netsize.adj
+#'
+#' @docType methods
+#' @section Currently implemented egocentric statistics: For each of these,
+#' please see their respective package's \code{ergm-terms} help for meaning and
+#' parameters. The simplest way to do this is usually via \code{? TERM}.
+#' 
+#' \describe{ \item{Special-purpose terms:}{ \describe{
+#' \item{netsize.adj}{A special-purpose term equivalent to
+#' \code{\link[ergm]{edges}}, to house the network-size adjustment offset. This
+#' term is added to the model automatically and should not be used in the model
+#' formula directly.  } } }
+#' 
+#' \item{ergm:}{ \itemize{ \item \code{offset} \item \code{edges}
+#' \item \code{nodecov} \item \code{nodefactor} \item \code{nodematch}
+#' \item \code{nodemix} \item \code{absdiff} \item \code{degree} \item
+#' \code{degrange} \item \code{concurrent} \item \code{concurrentties}
+#' \item \code{degree1.5} \item `mm` } }
+#' 
+#' \item{tergm:}{ \itemize{ \item \code{mean.age} } } }
+#' @seealso \code{\link[ergm]{ergm-terms}}
+#' @keywords models
+NULL
+
+#' @export
+EgoStat.offset <- function(egodata, trm){
+  trm <- substitute(trm)
+  if(is.call(trm)){
+    init.call <- list(as.name(paste("EgoStat.", trm[[1]],sep="")),egodata=egodata)
+    init.call <- c(init.call,as.list(trm[-1]))
+  }else{
+    init.call <- list(as.name(paste("EgoStat.", trm,sep="")),egodata=egodata)
+  }
+  eval(as.call(init.call))
+}
+
+#' @export
 EgoStat.edges <- function(egodata){
   egos <- egodata$egos
   alters <- egodata$alters
@@ -34,6 +93,7 @@ EgoStat.edges <- function(egodata){
 }
 
 
+#' @export
 EgoStat.nodecov <- function(egodata, attrname){
   egos <- egodata$egos
   alters <- egodata$alters
@@ -51,12 +111,22 @@ EgoStat.nodecov <- function(egodata, attrname){
 }
 
 
-EgoStat.nodefactor <- function(egodata, attrname, base=1){
+#' @export
+EgoStat.nodefactor <- function(egodata, attrname, base=1, levels=NULL){
   egos <- egodata$egos
   alters <- egodata$alters
   egoIDcol <- egodata$egoIDcol
+
+  # If there are multiple attributes, concatenate their names with a
+  # dot and concatenate their values with a dot.
+  if(length(attrname)>1){
+    attrnamename <- paste(attrname, collapse=".")
+    egos[[attrnamename]] <- do.call(paste,c(as.list(egos[,attrname]),list(sep=".")))
+    alters[[attrnamename]] <- do.call(paste,c(as.list(alters[,attrname]),list(sep=".")))
+    attrname <- attrnamename
+  }
   
-  levs <- sort(unique(c(egos[[attrname]],alters[[attrname]])))
+  levs <- NVL(levels, sort(unique(c(egos[[attrname]],alters[[attrname]]))))
   egos[[attrname]] <- match(egos[[attrname]], levs, 0)
   alters[[attrname]] <- match(alters[[attrname]], levs, 0)
   ties<-merge(egos[c(egoIDcol,attrname)],alters[c(egoIDcol,attrname)],by=egoIDcol,suffixes=c(".ego",".alter"))
@@ -71,10 +141,20 @@ EgoStat.nodefactor <- function(egodata, attrname, base=1){
   else h[match(egodata$egos[[egoIDcol]],rownames(h)),-base,drop=FALSE]/2
 }
 
+#' @export
 EgoStat.nodematch <- function(egodata, attrname, diff=FALSE, keep=NULL){
   egos <- egodata$egos
   alters <- egodata$alters
   egoIDcol <- egodata$egoIDcol
+
+  # If there are multiple attributes, concatenate their names with a
+  # dot and concatenate their values with a dot.
+  if(length(attrname)>1){
+    attrnamename <- paste(attrname, collapse=".")
+    egos[[attrnamename]] <- do.call(paste,c(as.list(egos[,attrname]),list(sep=".")))
+    alters[[attrnamename]] <- do.call(paste,c(as.list(alters[,attrname]),list(sep=".")))
+    attrname <- attrnamename
+  }
   
   levs <- sort(unique(c(egos[[attrname]],alters[[attrname]])))
   egos[[attrname]] <- match(egos[[attrname]], levs, 0)
@@ -98,11 +178,21 @@ EgoStat.nodematch <- function(egodata, attrname, diff=FALSE, keep=NULL){
 }
 
 
+#' @export
 EgoStat.nodemix <- function(egodata, attrname, base=NULL){
   egos <- egodata$egos
   alters <- egodata$alters
   egoIDcol <- egodata$egoIDcol
   
+  # If there are multiple attributes, concatenate their names with a
+  # dot and concatenate their values with a dot.
+  if(length(attrname)>1){
+    attrnamename <- paste(attrname, collapse=".")
+    egos[[attrnamename]] <- do.call(paste,c(as.list(egos[,attrname]),list(sep=".")))
+    alters[[attrnamename]] <- do.call(paste,c(as.list(alters[,attrname]),list(sep=".")))
+    attrname <- attrnamename
+  }
+
   levs <- sort(unique(c(egos[[attrname]],alters[[attrname]])))
   egos[[attrname]] <- match(egos[[attrname]], levs, 0)
   alters[[attrname]] <- match(alters[[attrname]], levs, 0)
@@ -137,6 +227,7 @@ EgoStat.nodemix <- function(egodata, attrname, base=NULL){
   h[match(egodata$egos[[egoIDcol]],rownames(h)),]/2
 }
 
+#' @export
 EgoStat.absdiff <- function(egodata, attrname, pow=1){
   egos <- egodata$egos
   alters <- egodata$alters
@@ -155,7 +246,8 @@ EgoStat.absdiff <- function(egodata, attrname, pow=1){
   h[match(egodata$egos[[egoIDcol]],rownames(h)),,drop=FALSE]/2
 }
 
-EgoStat.degree <- function(egodata, d, by=NULL, homophily=FALSE){
+#' @export
+EgoStat.degree <- function(egodata, d, by=NULL, homophily=FALSE, levels=NULL){
   ## if(any(d==0)) warning("degree(0) (isolate) count statistic depends strongly on the specified population network size.")
   
   egos <- egodata$egos
@@ -163,7 +255,7 @@ EgoStat.degree <- function(egodata, d, by=NULL, homophily=FALSE){
   egoIDcol <- egodata$egoIDcol
   
   if(!is.null(by)){
-    levs <- sort(unique(c(egos[[by]],alters[[by]])))
+    levs <- NVL(levels, sort(unique(c(egos[[by]],alters[[by]]))))
   }
   
   ties<-merge(egos[c(egoIDcol,by)],alters[c(egoIDcol,by)],by=egoIDcol,suffixes=c(".ego",".alter"))
@@ -193,7 +285,8 @@ EgoStat.degree <- function(egodata, d, by=NULL, homophily=FALSE){
   h[match(egodata$egos[[egoIDcol]],rownames(h)),,drop=FALSE]
 }
 
-EgoStat.degrange <- function(egodata, from=NULL, to=Inf, byarg=NULL, homophily=FALSE){
+#' @export
+EgoStat.degrange <- function(egodata, from=NULL, to=Inf, by=NULL, homophily=FALSE, levels=NULL){
   ## if(any(from==0)) warning("degrange(0,...) (isolate) count depends strongly on the specified population network size.")
   
   egos <- egodata$egos
@@ -207,39 +300,39 @@ EgoStat.degrange <- function(egodata, from=NULL, to=Inf, byarg=NULL, homophily=F
   else if(length(from)!=length(to)) stop("The arguments of term degrange must have arguments either of the same length, or one of them must have length 1.")
   else if(any(from>=to)) stop("Term degrange must have from<to.")
 
-  if(!is.null(byarg)){
-    levs <- sort(unique(c(egos[[byarg]],alters[[byarg]])))
+  if(!is.null(by)){
+    levs <- NVL(levels, sort(unique(c(egos[[by]],alters[[by]]))))
   }
 
-  ties<-merge(egos[c(egoIDcol,byarg)],alters[c(egoIDcol,byarg)],by=egoIDcol,suffixes=c(".ego",".alter"))
+  ties<-merge(egos[c(egoIDcol,by)],alters[c(egoIDcol,by)],by=egoIDcol,suffixes=c(".ego",".alter"))
 
-  if(!is.null(byarg)) names(ties) <- c(egoIDcol,".e",".a")
-  if(!is.null(byarg) && homophily) ties <- ties[ties$.e==ties$.a,]
+  if(!is.null(by)) names(ties) <- c(egoIDcol,".e",".a")
+  if(!is.null(by) && homophily) ties <- ties[ties$.e==ties$.a,]
   ties$.a <- NULL
 
   alterct <- as.data.frame(table(ties[[egoIDcol]]),stringsAsFactors=FALSE)
   colnames(alterct)<-c(egoIDcol,".degree")
 
-  egos <- merge(egos[c(egoIDcol,byarg)],alterct,by=egoIDcol,all=TRUE)
+  egos <- merge(egos[c(egoIDcol,by)],alterct,by=egoIDcol,all=TRUE)
   egos$.degree[is.na(egos$.degree)]<-0
 
-  if(!is.null(byarg) && !homophily){
+  if(!is.null(by) && !homophily){
     bys <- rep(levs,each=length(from))
     froms <- rep(from,length(levs))
     tos <- rep(to,length(levs))
     
-    h <- sapply(seq_along(bys), function(i) egos$.degree>=froms[i] & egos$.degree<tos[i] & egos[[byarg]]==bys[i])
+    h <- sapply(seq_along(bys), function(i) egos$.degree>=froms[i] & egos$.degree<tos[i] & egos[[by]]==bys[i])
     colnames(h) <-  ifelse(tos>=.Machine$integer.max,
-                           paste("deg", from, "+.",          byarg, bys, sep=""),
-                           paste("deg", from, "to", to, ".", byarg, bys, sep=""))
+                           paste("deg", from, "+.",          by, bys, sep=""),
+                           paste("deg", from, "to", to, ".", by, bys, sep=""))
 
   }else{
     h <- sapply(seq_along(from), function(i) egos$.degree>=from[i] & egos$.degree<to[i])
     colnames(h) <-
       if(homophily)
         ifelse(to>=.Machine$integer.max,
-               paste("deg", from,  "+",     ".homophily.", byarg, sep=""),
-               paste("deg", from, "to", to, ".homophily.", byarg, sep=""))
+               paste("deg", from,  "+",     ".homophily.", by, sep=""),
+               paste("deg", from, "to", to, ".homophily.", by, sep=""))
       else
         ifelse(to>=.Machine$integer.max,
                paste("deg", from,  "+", sep=""),
@@ -251,13 +344,14 @@ EgoStat.degrange <- function(egodata, from=NULL, to=Inf, byarg=NULL, homophily=F
   h[match(egodata$egos[[egoIDcol]],rownames(h)),,drop=FALSE]
 }
 
-EgoStat.concurrent <- function(egodata, by=NULL){
+#' @export
+EgoStat.concurrent <- function(egodata, by=NULL, levels=NULL){
   egos <- egodata$egos
   alters <- egodata$alters
   egoIDcol <- egodata$egoIDcol
 
   if(!is.null(by)){
-    levs <- sort(unique(c(egos[[by]],alters[[by]])))
+    levs <- NVL(levels, sort(unique(c(egos[[by]],alters[[by]]))))
   }
 
   ties<-merge(egos[c(egoIDcol,by)],alters[c(egoIDcol,by)],by=egoIDcol,suffixes=c(".ego",".alter"))
@@ -286,13 +380,14 @@ EgoStat.concurrent <- function(egodata, by=NULL){
   h[match(egodata$egos[[egoIDcol]],rownames(h)),,drop=FALSE]
 }
 
-EgoStat.concurrentties <- function(egodata, by=NULL){
+#' @export
+EgoStat.concurrentties <- function(egodata, by=NULL, levels=NULL){
   egos <- egodata$egos
   alters <- egodata$alters
   egoIDcol <- egodata$egoIDcol
 
   if(!is.null(by)){
-    levs <- sort(unique(c(egos[[by]],alters[[by]])))
+    levs <- NVL(levels, sort(unique(c(egos[[by]],alters[[by]]))))
   }
 
   ties<-merge(egos[c(egoIDcol,by)],alters[c(egoIDcol,by)],by=egoIDcol,suffixes=c(".ego",".alter"))
@@ -322,7 +417,8 @@ EgoStat.concurrentties <- function(egodata, by=NULL){
 }
 
 
-EgoStat.degreepopularity <- function(egodata){
+#' @export
+EgoStat.degree1.5 <- function(egodata){
   egos <- egodata$egos
   alters <- egodata$alters
   egoIDcol <- egodata$egoIDcol
@@ -336,8 +432,138 @@ EgoStat.degreepopularity <- function(egodata){
   egos$.degree[is.na(egos$.degree)]<-0
 
   h <- cbind(egos$.degree^(3/2))
-  colnames(h) <- "degreepopularity"
+  colnames(h) <- "degree1.5"
   rownames(h) <- egos[[egoIDcol]]
   
   h[match(egodata$egos[[egoIDcol]],rownames(h)),,drop=FALSE]
+}
+
+#' @export
+EgoStat.mm <- function(egodata, attrs, levels=NULL, levels2=NULL){
+  egos <- egodata$egos
+  alters <- egodata$alters
+  egoIDcol <- egodata$egoIDcol
+
+  # Some preprocessing steps are the same, so run together:
+  #' @import purrr
+  #' @importFrom utils relist
+  #' @importFrom methods is
+  spec <-
+    list(attrs = attrs, levels = levels) %>%
+    map_if(~!is(., "formula"), ~call("~", .)) %>% # Embed into RHS of formula.
+    map_if(~length(.)==2, ~call("~", .[[2]], .[[2]])) %>% # Convert ~X to X~X.
+    map(as.list) %>% map(~.[-1]) %>% # Convert to list(X,X).
+    map(set_names, c("row", "col")) %>% # Name elements rowspec and colspec.
+    transpose() %>%
+    unlist(recursive=FALSE) %>% # Convert into a flat list.
+    map_if(~is.name(.)&&.==".", ~NULL) %>% # If it's just a dot, convert to NULL.
+    map_if(~is.call(.)||(is.name(.)&&.!="."), ~as.formula(call("~", .))) %>% # If it's a call or a symbol, embed in formula.
+    relist(skeleton=list(row=c(attrs=NA, levels=NA), col=c(attrs=NA, levels=NA))) %>% # Reconstruct list.
+    transpose()
+
+  if(is(attrs, "formula"))
+    spec[["attrs"]] <- lapply(spec[["attrs"]], function(x){if(is(x,"formula")) environment(x) <- environment(attrs); x})
+  if(is(levels, "formula"))
+    spec[["levels"]] <- lapply(spec[["levels"]], function(x){if(is(x,"formula")) environment(x) <- environment(levels); x})
+  spec <- transpose(spec)
+  
+  # Extract attribute values.
+  attrval <-
+    spec %>%
+    imap(function(spec, whose){
+      if(is.null(spec$attrs)){
+        list(valcodes =
+               rep(0L,
+                   nrow(alters)*2
+                   ),
+             name = ".",
+             levels = NA,
+             levelcodes = 0,
+             id = rep(merge(data.frame(i=egos[[egoIDcol]]),
+                            data.frame(i=alters[[egoIDcol]]))$i,
+                      2)
+             )
+      }else{
+        xe <- ergm.ego_get_vattr(spec$attrs, egos)
+        xa <- ergm.ego_get_vattr(spec$attrs, alters)
+        xae <- merge(data.frame(i=egos[[egoIDcol]],xe=xe, stringsAsFactors=FALSE),
+                     data.frame(i=alters[[egoIDcol]],xa=xa, stringsAsFactors=FALSE))
+        x <- switch(whose,
+                    row = c(xae$xe,xae$xa),
+                    col = c(xae$xa,xae$xe))
+        name <- attr(xe, "name")
+        list(name=name, id=rep(xae$i,2), val=x, levels=spec$levels, unique=sort(unique(x)))
+      }
+    })
+
+  # Undirected unipartite networks with identical attribute
+  # specification produce square, symmetric mixing matrices. All
+  # others do not.
+  symm <- identical(spec$row$attrs, spec$col$attrs)
+  # Are we evaluating the margin?
+  marg <- length(attrval$row$unique)==0 || length(attrval$col$unique)==0
+  
+  # Filter the final level set and encode the attribute values.
+  attrval <- attrval %>%
+    map_if(~is.null(.$levelcodes), function(v){
+      v$levels <- ergm.ego_attr_levels(v$levels, v$val, egodata, levels=v$unique)
+      v$levelcodes <- seq_along(v$levels)
+      v$valcodes <- match(v$val, v$levels, nomatch=0)
+      v
+    })
+
+  # Construct all pairwise level combinations (table cells) and their numeric codes.
+  levels2codes <- expand.grid(row=attrval$row$levelcodes, col=attrval$col$levelcodes) %>% transpose()
+  levels2vals <- expand.grid(row=attrval$row$levels, col=attrval$col$levels, stringsAsFactors=FALSE) %>% transpose()
+
+  # Drop redundant table cells if symmetrising.
+  if(symm){
+    levels2keep <- levels2codes %>% map_lgl(with, row <= col)
+    levels2codes <- levels2codes[levels2keep]
+    levels2vals <- levels2vals[levels2keep]
+  }
+
+  # Run the table cell list through the cell filter.
+  levels2sel <- ergm.ego_attr_levels(levels2, list(row=attrval$row$val, col=attrval$col$val), egodata, levels=levels2vals)
+  levels2codes <- levels2codes[match(levels2sel,levels2vals, NA)]
+  levels2vals <- levels2sel; rm(levels2sel)
+
+  # Construct the level names
+  levels2names <-
+    levels2vals %>%
+    transpose() %>%
+    map(unlist) %>%
+    with(paste0(
+      "[",
+      if(length(attrval$row$levels)>1)
+        paste0(attrval$row$name, "=", .$row)
+      else ".",
+      ",",
+      if(length(attrval$col$levels)>1)
+        paste0(attrval$col$name, "=", .$col)
+      else ".",
+      "]"))
+  
+  coef.names <- paste0("mm",levels2names)
+
+  h <- attrval %>%
+    map("valcodes") %>%
+    transpose() %>%
+    match(levels2codes) %>%
+    map(tabulate, length(levels2codes)) %>%
+    do.call(rbind,.) %>%
+    aggregate(by=list(i=attrval$row$id), FUN=sum)
+
+  i <- h$i
+  h <- as.matrix(h)[,-1,drop=FALSE]
+  colnames(h) <- coef.names
+
+  if(symm){
+    selff <- 1+map_lgl(levels2codes, all_identical)
+    h <- sweep(h, 2, selff, `/`)
+  }
+  
+  h <- h[match(egos[[egoIDcol]], i),,drop=FALSE]/2
+  h[is.na(h)] <- 0
+  h
 }

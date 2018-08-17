@@ -5,9 +5,66 @@
 #  open source, and has the attribution requirements (GPL Section 7) at
 #  http://statnet.org/attribution
 #
-#  Copyright 2015-2016 Statnet Commons
+#  Copyright 2015-2018 Statnet Commons
 #######################################################################
-summary.statistics.egodata <- function(object,..., basis=NULL, individual=FALSE, scaleto=NULL){
+
+
+#' Calculation of ERGM-style summary statistics for \code{\link{egodata}}
+#' objects.
+#' 
+#' Used to calculate the specified network statistics inferred from a
+#' \code{\link{egodata}} object.
+#' 
+#' 
+#' @aliases summary_formula.egodata summary summary_formula
+#' @param object An \code{\link[ergm]{ergm}}-style formula with a
+#' \code{\link{egodata}} object as the LHS.
+#' 
+#' For a list of currently implemented egocentric terms for the RHS, see
+#' \code{\link{ergm.ego-terms}}.
+#' @param \dots Not used at this time.
+#' @param basis An optional \code{\link{egodata}} object relative to which the
+#' statistics should be calculated.
+#' @param individual If \code{FALSE} (the default), calculate the estimated
+#' per-capita statistics, weighted according to the ego weights, then scale
+#' them up to a network of size \code{scaleto}.
+#' 
+#' If \code{TRUE}, calculate each ego's individual contribution to the
+#' specified network statistics.
+#' @param scaleto Size of a hypothetical network to which to scale the
+#' statistics. Defaults to the number of egos in the dataset.
+#' @return If \code{individual==FALSE}, a named vector of statistics. If
+#' \code{individual==TRUE}, a matrix with a row for each ego, giving that ego's
+#' contribution to the network statistic.
+#' @author Pavel N. Krivitsky
+#' @seealso \code{\link[ergm]{summary_formula}},
+#' \code{\link[ergm]{summary_formula.ergm}}
+#' @references Pavel N. Krivitsky and Martina Morris. Inference for Social
+#' Network Models from Egocentrically-Sampled Data, with Application to
+#' Understanding Persistent Racial Disparities in HIV Prevalence in the US.
+#' Thechnical Report. National Institute for Applied Statistics Research
+#' Australia, University of Wollongong, 2015(05-15).
+#' \doi{10.1214/16-AOAS1010}
+#' 
+#' Pavel N. Krivitsky, Mark S. Handcock, and Martina Morris. Adjusting for
+#' Network Size and Composition Effects in Exponential-Family Random Graph
+#' Models. \emph{Statistical Methodology}, 2011, 8(4), 319-339.
+#' \doi{10.1016/j.stamet.2011.01.005}
+#' @examples
+#' 
+#' data(faux.mesa.high)
+#' fmh.ego <- as.egodata(faux.mesa.high)
+#' (nw.summ <- summary(faux.mesa.high~edges+degree(0:3)+nodematch("Race")+
+#'                     nodematch("Sex")+absdiff("Grade")+nodemix("Grade")))
+#' 
+#' (ego.summ <- summary(fmh.ego~edges+degree(0:3)+nodematch("Race")+nodematch("Sex")+
+#'                      absdiff("Grade")+nodemix("Grade"),
+#'                      scaleto=network.size(faux.mesa.high)))
+#' 
+#' stopifnot(isTRUE(all.equal(nw.summ,ego.summ)))
+#' 
+#' @export
+summary_formula.egodata <- function(object,..., basis=NULL, individual=FALSE, scaleto=NULL){
   egodata <-
     if(!is.null(basis)) basis
     else get(as.character(object[[2]]), envir=environment(object))
@@ -18,7 +75,7 @@ summary.statistics.egodata <- function(object,..., basis=NULL, individual=FALSE,
   nonscaling.pos <- c(0)
   
   
-  for(trm in term.list.formula(object[[length(object)]])){
+  for(trm in list_rhs.formula(object)){
     if(is.call(trm)){
       init.call <- list(as.name(paste("EgoStat.", trm[[1]],sep="")),egodata=egodata)
       init.call <- c(init.call,as.list(trm[-1]))
