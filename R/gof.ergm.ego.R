@@ -1,11 +1,11 @@
 #  File R/gof.ergm.ego.R in package ergm.ego, part of the Statnet suite
-#  of packages for network analysis, http://statnet.org .
+#  of packages for network analysis, https://statnet.org .
 #
 #  This software is distributed under the GPL-3 license.  It is free,
 #  open source, and has the attribution requirements (GPL Section 7) at
-#  http://statnet.org/attribution
+#  https://statnet.org/attribution
 #
-#  Copyright 2015-2018 Statnet Commons
+#  Copyright 2015-2019 Statnet Commons
 #######################################################################
 # This file contains the following 8 functions for assessing goodness of fit
 #         <gof>              <summary.gofobject>
@@ -134,14 +134,17 @@ gof.ergm.ego <- function (object, ...,
   if(is.null(GOF)){
     GOF<- ~degree
   }
-  
-  ## If a different constraint was specified, use it; otherwise, copy
-  ## from the ERGM.
 
-  control.transfer <- c("MCMC.burnin", "MCMC.interval", "MCMC.prop.weights", "MCMC.prop.args", "MCMC.packagenames", "MCMC.init.maxedges")
+  .gof.egodata <- object$egodata
+  formula <- nonsimp_update.formula(object$formula, .gof.egodata~., from.new=".gof.egodata")
+  
+  control.transfer <- c("MCMC.burnin", "MCMC.prop.weights", "MCMC.prop.args", "MCMC.packagenames", "MCMC.init.maxedges")
   for(arg in control.transfer)
     if(is.null(control[[arg]]))
       control[arg] <- list(object$control[[arg]])
+
+  # Rescale the interval by the ratio between the estimation sample size and the GOF sample size so that the total number of MCMC iterations would be about the same.
+  NVL(control$MCMC.interval) <- max(ceiling(object$control$MCMC.interval*object$control$MCMC.samplesize/control$nsim),1)
 
   constraints <- object$constraints
   
@@ -159,16 +162,16 @@ gof.ergm.ego <- function (object, ...,
   n <- network.size(object$newnetwork)
   
   if ('model' %in% GOF) {
-    obs.model <- summary(object$formula, scaleto=1)
-    sim.model <- simulate(object, nsim=control$nsim, seed=control$seed, popsize=object$ppopsize, control=control.simulate.ergm.ego(simulate.control=set.control.class("control.simulate.formula",control)),...,verbose=verbose, statsonly=TRUE)/n
+    obs.model <- summary(formula, scaleto=1)
+    sim.model <- simulate(object, nsim=control$nsim, seed=control$seed, popsize=object$ppopsize, control=control.simulate.ergm.ego(simulate.control=set.control.class("control.simulate.formula",control)),...,verbose=verbose, output="stats")/n
   }
 
   if ('degree' %in% GOF) {
     egodata <- object$egodata
-    s <- 
-    obs.deg <- summary(as.formula(paste0("egodata~degree(0:",n-1,")")), scaleto=1)
-    sim.deg <- simulate(object, nsim=control$nsim, seed=control$seed, popsize=object$ppopsize, control=control.simulate.ergm.ego(simulate.control=set.control.class("control.simulate.formula",control)),...,verbose=verbose, statsonly=TRUE, monitor=as.formula(paste0("~degree(0:",n-1,")")))
-    sim.deg <- sim.deg[, ncol(sim.deg)-((n-1):0), drop=FALSE]/n
+    maxdeg <- max(table(egodata$alters[[egodata$egoIDcol]]),3)*2
+    obs.deg <- summary(as.formula(paste0("egodata~degree(0:",maxdeg-1,")+degrange(",maxdeg,")")), scaleto=1)
+    sim.deg <- simulate(object, nsim=control$nsim, seed=control$seed, popsize=object$ppopsize, control=control.simulate.ergm.ego(simulate.control=set.control.class("control.simulate.formula",control)),...,verbose=verbose, output="stats", monitor=as.formula(paste0("~degree(0:",maxdeg-1,")+degrange(",maxdeg,")")))
+    sim.deg <- sim.deg[, ncol(sim.deg)-(maxdeg:0), drop=FALSE]/n
   }
 
   if(verbose)
@@ -181,10 +184,11 @@ gof.ergm.ego <- function (object, ...,
   if ('model' %in% GOF) {
     pval.model <- apply(sim.model <= obs.model[col(sim.model)],2,mean)
     pval.model.top <- apply(sim.model >= obs.model[col(sim.model)],2,mean)
+    q.model <- (pval.model+1-pval.model.top)/2 # Handle ties by averaging.
     pval.model <- cbind(obs.model,apply(sim.model, 2,min), apply(sim.model, 2,mean),
                         apply(sim.model, 2,max), pmin(1,2*pmin(pval.model,pval.model.top)))
     dimnames(pval.model)[[2]] <- c("obs","min","mean","max","MC p-value")
-    pobs.model <- pval.model.top
+    pobs.model <- q.model
     psim.model <- apply(sim.model,2,rank)/nrow(sim.model)
     bds.model <- apply(psim.model,2,quantile,probs=c(0.025,0.975))
 

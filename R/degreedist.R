@@ -1,11 +1,11 @@
 #  File R/degreedist.R in package ergm.ego, part of the Statnet suite
-#  of packages for network analysis, http://statnet.org .
+#  of packages for network analysis, https://statnet.org .
 #
 #  This software is distributed under the GPL-3 license.  It is free,
 #  open source, and has the attribution requirements (GPL Section 7) at
-#  http://statnet.org/attribution
+#  https://statnet.org/attribution
 #
-#  Copyright 2015-2018 Statnet Commons
+#  Copyright 2015-2019 Statnet Commons
 #######################################################################
 
 
@@ -16,7 +16,7 @@
 #' optionally broken down by group and/or compared with a Bernoulli
 #' graph.
 #' 
-#' 
+#' @aliases degreedist
 #' @param object A \code{\link{egodata}} object.
 #' @param freq,prob Whether to plot the raw frequencies or the conditional
 #' proportions of the degree values. Defaults to the latter.
@@ -28,6 +28,8 @@
 #' @param main Main title of the plot.
 #' @param plot Whether to plot the histogram; if `FALSE`, graphical
 #'   parameters and `bgrmod` have no effect.
+#' @param weight Whether sampling weights should be incorporated into
+#'   the calculation (`TRUE`, the default) or ignored (`FALSE`).
 #' @param ... Additional arguments to [simulate.ergm.ego()].
 #'
 #' @return Returns either a vector of degree frequencies/proportions
@@ -42,13 +44,16 @@
 #' fmh.ego <- as.egodata(faux.mesa.high)
 #' 
 #' degreedist(fmh.ego,by="Grade",brgmod=TRUE)
-#'
+#' # Compare:
+#' degreedist(faux.mesa.high)
+#' 
 #' @importFrom graphics arrows barplot legend points
 #' @export
 degreedist.egodata <- function(object, freq = FALSE, prob = !freq, 
-                               by = NULL, brgmod = FALSE, main = NULL, plot = TRUE, ...){
+                               by = NULL, brgmod = FALSE, main = NULL, plot = TRUE, weight = TRUE, ...){
   egodata <- object
-  
+  if(!weight) egodata$egoWt[] <- 1
+
   color <- "#83B6E1"
   beside <- TRUE
 
@@ -157,16 +162,19 @@ degreedist.egodata <- function(object, freq = FALSE, prob = !freq,
 
 #' Summarizing the mixing among groups in an egocentric dataset
 #' 
-#' A \code{\link[network]{mixingmatrix}} "method" for
+#' A \code{\link[network]{mixingmatrix}} method for
 #' \code{\link{egodata}} objects, to return counts of how often a ego
 #' of each group nominates an alter of each group.
 #' 
 #' 
+#' @aliases mixingmatrix
 #' @param object A \code{\link{egodata}} object.
 #' @param attrname A character vector containing the name of the network
 #' attribute whose mixing matrix is wanted.
 #' @param rowprob Whether the counts should be normalized by row sums. That is,
 #' whether they should be proportions conditional on the ego's group.
+#' @param weight Whether sampling weights should be incorporated into
+#'   the calculation (`TRUE`, the default) or ignored (`FALSE`).
 #' @param ... Additional arguments, currently unused.
 #' @return A matrix with a row and a column for each level of \code{attrname}.
 #' 
@@ -176,26 +184,25 @@ degreedist.egodata <- function(object, freq = FALSE, prob = !freq,
 #' \code{\link[network]{mixingmatrix}} for the original undirected network.
 #' @seealso \code{\link[network]{mixingmatrix}}, \code{\link[ergm]{nodemix}},
 #' \code{\link[ergm.ego]{summary}} method for egocentric data
-#'
-#' @note As of the \code{ergm.ego} 0.4 release, \code{network}
-#'   package's [mixingmatrix()] is not a generic, so this function is
-#'   not a method. A future release of \code{network} will make it so.
 #' @examples
 #' 
 #' data(faux.mesa.high)
 #' fmh.ego <- as.egodata(faux.mesa.high)
 #' 
 #' (mm <- mixingmatrix(faux.mesa.high,"Grade"))
-#' (mm.ego <- mixingmatrix.egodata(fmh.ego,"Grade"))
+#' (mm.ego <- mixingmatrix(fmh.ego,"Grade"))
 #' 
 #' stopifnot(isTRUE(all.equal({tmp<-unclass(mm$matrix); diag(tmp) <- diag(tmp)*2;
 #' tmp}, mm.ego, check.attributes=FALSE)))
 #' 
 #' @export
-mixingmatrix.egodata <- function(object, attrname, rowprob = FALSE, ...){
-  egos <- object$egos
-  alters <- object$alters
-  egoIDcol <- object$egoIDcol
+mixingmatrix.egodata <- function(object, attrname, rowprob = FALSE, weight = TRUE, ...){
+  egodata <- object
+  if(!weight) egodata$egoWt[] <- 1
+
+  egos <- egodata$egos
+  alters <- egodata$alters
+  egoIDcol <- egodata$egoIDcol
   
   levs <- sort(unique(c(egos[[attrname]], alters[[attrname]])))
   egos[[attrname]] <- match(egos[[attrname]], levs, 0)

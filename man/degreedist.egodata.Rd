@@ -2,10 +2,12 @@
 % Please edit documentation in R/degreedist.R
 \name{degreedist.egodata}
 \alias{degreedist.egodata}
+\alias{degreedist}
 \title{Plotting the degree distribution of an egocentric dataset}
 \usage{
 \method{degreedist}{egodata}(object, freq = FALSE, prob = !freq,
-  by = NULL, brgmod = FALSE, main = NULL, plot = TRUE, ...)
+  by = NULL, brgmod = FALSE, main = NULL, plot = TRUE,
+  weight = TRUE, ...)
 }
 \arguments{
 \item{object}{A \code{\link{egodata}} object.}
@@ -24,6 +26,9 @@ observed.}
 
 \item{plot}{Whether to plot the histogram; if \code{FALSE}, graphical
 parameters and \code{bgrmod} have no effect.}
+
+\item{weight}{Whether sampling weights should be incorporated into
+the calculation (\code{TRUE}, the default) or ignored (\code{FALSE}).}
 
 \item{...}{Additional arguments to \code{\link[=simulate.ergm.ego]{simulate.ergm.ego()}}.}
 }
@@ -44,6 +49,8 @@ data(faux.mesa.high)
 fmh.ego <- as.egodata(faux.mesa.high)
 
 degreedist(fmh.ego,by="Grade",brgmod=TRUE)
+# Compare:
+degreedist(faux.mesa.high)
 
 }
 \seealso{

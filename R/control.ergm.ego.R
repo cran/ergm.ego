@@ -1,11 +1,11 @@
 #  File R/control.ergm.ego.R in package ergm.ego, part of the Statnet suite
-#  of packages for network analysis, http://statnet.org .
+#  of packages for network analysis, https://statnet.org .
 #
 #  This software is distributed under the GPL-3 license.  It is free,
 #  open source, and has the attribution requirements (GPL Section 7) at
-#  http://statnet.org/attribution
+#  https://statnet.org/attribution
 #
-#  Copyright 2015-2018 Statnet Commons
+#  Copyright 2015-2019 Statnet Commons
 #######################################################################
 
 
@@ -32,8 +32,11 @@
 #' \item{a number}{set \eqn{|N'|} directly (\code{popsize.mul}
 #' ignored)}
 #'
+#' \item{a [`network`] object}{use the specified network as the
+#' pseudo-population network directly; use at your own risk}
+#'
 #' \item{a data frame}{use the specified data frame as the
-#' pseudo-population; use at your own risk.}}
+#' pseudo-population; use at your own risk}}
 #' 
 #' The default is to use the same pseudopopulation size as the sample size,
 #' but, particularly if there are sampling weights in the data, it should be

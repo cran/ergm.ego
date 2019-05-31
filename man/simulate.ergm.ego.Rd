@@ -5,8 +5,10 @@
 \title{Simulate from a \code{\link{ergm.ego}} fit.}
 \usage{
 \method{simulate}{ergm.ego}(object, nsim = 1, seed = NULL,
-  popsize = if (object$popsize == 1) object$ppopsize else object$popsize,
-  control = control.simulate.ergm.ego(), ..., verbose = FALSE)
+  constraints = object$constraints, popsize = if (object$popsize == 1)
+  object$ppopsize else object$popsize,
+  control = control.simulate.ergm.ego(), output = c("network", "stats",
+  "edgelist", "pending_update_network"), ..., verbose = FALSE)
 }
 \arguments{
 \item{object}{An \code{\link{ergm.ego}} fit.}
@@ -15,6 +17,9 @@
 
 \item{seed}{Random seed.}
 
+\item{constraints, \dots}{Additional arguments passed to \code{\link[ergm]{san}} and
+\code{\link[ergm]{simulate.formula}}.}
+
 \item{popsize}{Either network size to which to scale the model for
 simulation or a \code{\link{data.frame}} with at least those ego attributes
 required to estimate the model, to simulate over a specific set
@@ -22,14 +27,15 @@ of actors.}
 
 \item{control}{A \code{\link{control.simulate.ergm.ego}} control list.}
 
-\item{\dots}{Additional arguments passed to \code{\link[ergm]{san}} and
-\code{\link[ergm]{simulate.formula}}.}
+\item{output}{one of \code{"network"}, \code{"stats"}, \code{"edgelist"}, or
+\code{"pending_update_network"}. See help for \code{\link[=simulate.ergm]{simulate.ergm()}} for
+explanation.}
 
 \item{verbose}{Verbosity of output.}
 }
 \value{
 The ouput has the same format (with the same options) as
-\code{\link[ergm]{simulate.formula}}. If \code{statsonly=TRUE} is passed, an
+\code{\link[ergm]{simulate.formula}}. If \code{output="stats"} is passed, an
 additional attribute, \code{"ppopsize"} is set, giving the actual size of
 the network reconstructed, when the \code{pop.wt} control parameter is set
 to \code{"round"} and \code{"popsize"} is not a multiple of the egocentric
@@ -44,14 +50,14 @@ from an ERGM fit using \code{\link{ergm.ego}}.
 data(faux.mesa.high)
 fmh.ego <- as.egodata(faux.mesa.high)
 egofit <- ergm.ego(fmh.ego~edges+degree(0:3)+nodefactor("Race")+nodematch("Race")
-                         +nodefactor("Sex")+nodematch("Sex")+absdiff("Grade"), 
-                          popsize=network.size(faux.mesa.high))
-colMeans(egosim <- simulate(egofit, popsize=500,nsim=200,
-statsonly=TRUE, control=control.simulate.ergm.ego(
-                    simulate.control=control.simulate.formula(MCMC.burnin=2e6))))
+               +nodefactor("Sex")+nodematch("Sex")+absdiff("Grade"), 
+               popsize=network.size(faux.mesa.high))
+colMeans(egosim <- simulate(egofit, popsize=300,nsim=50,
+                       output="stats", control=control.simulate.ergm.ego(
+                       simulate.control=control.simulate.formula(MCMC.burnin=2e6))))
 colMeans(egosim)/attr(egosim,"ppopsize")*network.size(faux.mesa.high)
 summary(faux.mesa.high~edges+degree(0:3)+nodefactor("Race")+nodematch("Race")
-                         +nodefactor("Sex")+nodematch("Sex")+absdiff("Grade"))
+           +nodefactor("Sex")+nodematch("Sex")+absdiff("Grade"))
 
 }
 \references{

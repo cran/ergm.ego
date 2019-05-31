@@ -1,11 +1,11 @@
 #  File R/EgoStat.R in package ergm.ego, part of the Statnet suite
-#  of packages for network analysis, http://statnet.org .
+#  of packages for network analysis, https://statnet.org .
 #
 #  This software is distributed under the GPL-3 license.  It is free,
 #  open source, and has the attribution requirements (GPL Section 7) at
-#  http://statnet.org/attribution
+#  https://statnet.org/attribution
 #
-#  Copyright 2015-2018 Statnet Commons
+#  Copyright 2015-2019 Statnet Commons
 #######################################################################
 # An EgoStat.* function takes the data frame of egos, a data frame of
 # alters, and the arguments passed to the corresponding ERGM terms,
@@ -58,6 +58,9 @@
 #' @keywords models
 NULL
 
+# copied from ergm
+LEVELS_BASE1 <- NULL
+
 #' @export
 EgoStat.offset <- function(egodata, trm){
   trm <- substitute(trm)
@@ -67,7 +70,11 @@ EgoStat.offset <- function(egodata, trm){
   }else{
     init.call <- list(as.name(paste("EgoStat.", trm,sep="")),egodata=egodata)
   }
-  eval(as.call(init.call))
+  h <- eval(as.call(init.call))
+  
+  # needed to match ergm's naming convention for offsets  
+  colnames(h) <- paste0("offset(", colnames(h), ")")
+  h
 }
 
 #' @export
@@ -94,76 +101,111 @@ EgoStat.edges <- function(egodata){
 
 
 #' @export
-EgoStat.nodecov <- function(egodata, attrname){
+EgoStat.nodecov <- function(egodata, attr){
   egos <- egodata$egos
   alters <- egodata$alters
   egoIDcol <- egodata$egoIDcol
-   
-  ties<-merge(egos[c(egoIDcol,attrname)],alters[c(egoIDcol,attrname)],by=egoIDcol,suffixes=c(".ego",".alter"))
-  names(ties) <- c(egoIDcol,".e",".a")
-  isolates <- egos[[egoIDcol]][!(egos[[egoIDcol]]%in%ties[[egoIDcol]])] 
-  ties <- data.frame(egoID=c(ties[[egoIDcol]],ties[[egoIDcol]],isolates),x=c(ties$.e,ties$.a,rep(0,length(isolates))),stringsAsFactors=FALSE)
+
+  xe <- ergm.ego_get_vattr(attr, egos, accept = "numeric", multiple = "matrix")
+  xa <- ERRVL(try(ergm.ego_get_vattr(attr, alters, accept = "numeric", multiple = "matrix"), silent=TRUE), NULL)
   
-  h <- cbind(sapply(tapply(ties$x,list(egoID=ties$egoID),FUN=sum),identity))
-  colnames(h) <- paste("nodecov",attrname,sep=".")
+  attrnames <- if(is.matrix(xe)) colnames(xe) else attributes(xe)$name
+  alt <- !is.null(xa)
+
+  egos <- setNames(data.frame(egoIDcol = egos[[egoIDcol]], attrnames = xe, stringsAsFactors=FALSE), c(egoIDcol, attrnames))
+  alters <- NVL2(xa, setNames(data.frame(egoIDcol = alters[[egoIDcol]], attrnames = xa, stringsAsFactors=FALSE), c(egoIDcol, attrnames)),
+                     setNames(data.frame(egoIDcol = alters[[egoIDcol]], stringsAsFactors=FALSE), egoIDcol))
   
-  h[match(egodata$egos[[egoIDcol]],rownames(h)),,drop=FALSE]/2
+  ties.all <-merge(egos[c(egoIDcol,attrnames)],alters[c(egoIDcol,if(alt) attrnames)],by=egoIDcol,suffixes=c(".ego",".alter"))
+  names(ties.all) <- c(egoIDcol, paste0(attrnames, ".ego"), if(alt) paste0(attrnames, ".alter"))
+  
+  isolates <- egos[[egoIDcol]][!(egos[[egoIDcol]]%in%ties.all[[egoIDcol]])] 
+
+  h.all <- NULL
+  for(attrname in attrnames) {
+    ties <- ties.all[c(egoIDcol, paste0(attrname, c(".ego", if(alt) ".alter")))]
+    names(ties) <- c(egoIDcol,".e",if(alt) ".a")
+  
+    ties <- data.frame(egoID=c(ties[[egoIDcol]],if(alt) ties[[egoIDcol]],isolates),x=c(ties$.e,if(alt) ties$.a,rep(0,length(isolates))),stringsAsFactors=FALSE)
+  
+    h <- cbind(sapply(tapply(ties$x,list(egoID=ties$egoID),FUN=sum),identity)) / if(alt) 2 else 1
+    
+    colname <- "nodecov"
+    if(is.matrix(xe)) colname <- paste(colname, attributes(xe)$name, sep = ".")
+    colname <- paste(colname, attrname, sep = ".")
+    colnames(h) <- colname
+  
+    h.all <- cbind(h.all, h[match(egodata$egos[[egoIDcol]],rownames(h)),,drop=FALSE])
+  }
+
+  h.all
 }
 
 
 #' @export
-EgoStat.nodefactor <- function(egodata, attrname, base=1, levels=NULL){
+EgoStat.nodefactor <- function(egodata, attr, base=1, levels=LEVELS_BASE1){
+  if(!missing(base)) message("In term `nodefactor' in package `ergm.ego': Argument \"base\" has been superseded by \"levels\" and it is recommended to use the latter.  Note that its interpretation may be different.")
+
   egos <- egodata$egos
   alters <- egodata$alters
   egoIDcol <- egodata$egoIDcol
 
-  # If there are multiple attributes, concatenate their names with a
-  # dot and concatenate their values with a dot.
-  if(length(attrname)>1){
-    attrnamename <- paste(attrname, collapse=".")
-    egos[[attrnamename]] <- do.call(paste,c(as.list(egos[,attrname]),list(sep=".")))
-    alters[[attrnamename]] <- do.call(paste,c(as.list(alters[,attrname]),list(sep=".")))
-    attrname <- attrnamename
-  }
+  xe <- ergm.ego_get_vattr(attr, egos)
+  xa <- ERRVL(try(ergm.ego_get_vattr(attr, alters), silent=TRUE), NULL)
+
+  attrname <- attributes(xe)$name
+  alt <- !is.null(xa)
   
-  levs <- NVL(levels, sort(unique(c(egos[[attrname]],alters[[attrname]]))))
-  egos[[attrname]] <- match(egos[[attrname]], levs, 0)
-  alters[[attrname]] <- match(alters[[attrname]], levs, 0)
-  ties<-merge(egos[c(egoIDcol,attrname)],alters[c(egoIDcol,attrname)],by=egoIDcol,suffixes=c(".ego",".alter"))
-  names(ties) <- c(egoIDcol,".e",".a")
+  levs <- ergm.ego_attr_levels(levels, c(xe, xa), egodata, sort(unique(c(xe, xa))))
+
+  xe <- match(xe, levs, 0)
+  if(alt) xa <- match(xa, levs, 0)
+
+  egos <- setNames(data.frame(egoIDcol = egos[[egoIDcol]], attrname = xe, stringsAsFactors=FALSE), c(egoIDcol, attrname))
+  alters <- NVL2(xa, setNames(data.frame(egoIDcol = alters[[egoIDcol]], attrname = xa, stringsAsFactors=FALSE), c(egoIDcol, attrname)),
+                     setNames(data.frame(egoIDcol = alters[[egoIDcol]], stringsAsFactors=FALSE), egoIDcol))
+  
+  ties<-merge(egos[c(egoIDcol,attrname)],alters[c(egoIDcol,if(alt) attrname)],by=egoIDcol,suffixes=c(".ego",".alter"))
+  names(ties) <- c(egoIDcol,".e",if(alt) ".a")
   isolates <- egos[[egoIDcol]][!(egos[[egoIDcol]]%in%ties[[egoIDcol]])] 
-  ties <- data.frame(egoID=c(ties[[egoIDcol]],ties[[egoIDcol]],isolates),x=c(ties$.e,ties$.a,rep(0,length(isolates))),stringsAsFactors=FALSE)
+  ties <- data.frame(egoID=c(ties[[egoIDcol]],if(alt) ties[[egoIDcol]],isolates),x=c(ties$.e,if(alt) ties$.a,rep(0,length(isolates))),stringsAsFactors=FALSE)
+
+  h <- t(sapply(tapply(ties$x, list(egoID=ties$egoID), FUN=tabulate, nbins=length(levs)),identity)) / if(alt) 2 else 1
   
-  h <- t(sapply(tapply(ties$x, list(egoID=ties$egoID), FUN=tabulate, nbins=length(levs)),identity))
+  # handles case of one level
+  if(length(levs) == 1) h <- t(h)
+  
   colnames(h) <- paste("nodefactor",attrname,levs,sep=".")  
 
-  if(length(base)==0 || base==0) h[match(egodata$egos[[egoIDcol]],rownames(h)),,drop=FALSE]/2
-  else h[match(egodata$egos[[egoIDcol]],rownames(h)),-base,drop=FALSE]/2
+  if(length(base)==0 || base==0 || !missing(levels)) h[match(egodata$egos[[egoIDcol]],rownames(h)),,drop=FALSE]
+  else h[match(egodata$egos[[egoIDcol]],rownames(h)),-base,drop=FALSE]
 }
 
 #' @export
-EgoStat.nodematch <- function(egodata, attrname, diff=FALSE, keep=NULL){
+EgoStat.nodematch <- function(egodata, attr, diff=FALSE, keep=NULL, levels=NULL){
+  if(!missing(keep)) message("In term `nodematch' in package `ergm.ego': Argument \"keep\" has been superseded by \"levels\" and it is recommended to use the latter.  Note that its interpretation may be different.")
+  
   egos <- egodata$egos
   alters <- egodata$alters
   egoIDcol <- egodata$egoIDcol
 
-  # If there are multiple attributes, concatenate their names with a
-  # dot and concatenate their values with a dot.
-  if(length(attrname)>1){
-    attrnamename <- paste(attrname, collapse=".")
-    egos[[attrnamename]] <- do.call(paste,c(as.list(egos[,attrname]),list(sep=".")))
-    alters[[attrnamename]] <- do.call(paste,c(as.list(alters[,attrname]),list(sep=".")))
-    attrname <- attrnamename
-  }
+  xe <- ergm.ego_get_vattr(attr, egos)
+  xa <- ergm.ego_get_vattr(attr, alters)
+
+  attrname <- attributes(xe)$name
   
-  levs <- sort(unique(c(egos[[attrname]],alters[[attrname]])))
-  egos[[attrname]] <- match(egos[[attrname]], levs, 0)
-  alters[[attrname]] <- match(alters[[attrname]], levs, 0)
+  levs <- ergm.ego_attr_levels(levels, c(xe, xa), egodata, sort(unique(c(xe, xa))))
+
+  xe <- match(xe, levs, 0)
+  xa <- match(xa, levs, 0)
+
+  egos <- setNames(data.frame(egoIDcol = egos[[egoIDcol]], attrname = xe, stringsAsFactors=FALSE), c(egoIDcol, attrname))
+  alters <- setNames(data.frame(egoIDcol = alters[[egoIDcol]], attrname = xa, stringsAsFactors=FALSE), c(egoIDcol, attrname))
   
   ties<-merge(egos[c(egoIDcol,attrname)],alters[c(egoIDcol,attrname)],by=egoIDcol,suffixes=c(".ego",".alter"))
   names(ties) <- c(egoIDcol,".e",".a")
   ties$match <- ifelse(ties$.e==ties$.a, as.integer(ties$.e), 0)
-  if(!is.null(keep)) ties$match[!(ties$match%in%keep)] <- 0
+  if(!is.null(keep) && missing(levels)) ties$match[!(ties$match%in%keep)] <- 0
   if(!diff) ties$match[ties$match!=0] <- 1
   
   isolates <- egos[[egoIDcol]][!(egos[[egoIDcol]]%in%ties[[egoIDcol]])] 
@@ -179,41 +221,66 @@ EgoStat.nodematch <- function(egodata, attrname, diff=FALSE, keep=NULL){
 
 
 #' @export
-EgoStat.nodemix <- function(egodata, attrname, base=NULL){
+EgoStat.nodemix <- function(egodata, attr, base=NULL, levels=NULL, levels2=NULL){
+  if(!missing(base)) message("In term `nodemix' in package `ergm.ego': Argument \"base\" has been superseded by \"levels2\" and it is recommended to use the latter.  Note that its interpretation may be different.")
+  
   egos <- egodata$egos
   alters <- egodata$alters
   egoIDcol <- egodata$egoIDcol
   
-  # If there are multiple attributes, concatenate their names with a
-  # dot and concatenate their values with a dot.
-  if(length(attrname)>1){
-    attrnamename <- paste(attrname, collapse=".")
-    egos[[attrnamename]] <- do.call(paste,c(as.list(egos[,attrname]),list(sep=".")))
-    alters[[attrnamename]] <- do.call(paste,c(as.list(alters[,attrname]),list(sep=".")))
-    attrname <- attrnamename
-  }
+  xeval <- ergm.ego_get_vattr(attr, egos)
+  xaval <- ergm.ego_get_vattr(attr, alters)
 
-  levs <- sort(unique(c(egos[[attrname]],alters[[attrname]])))
-  egos[[attrname]] <- match(egos[[attrname]], levs, 0)
-  alters[[attrname]] <- match(alters[[attrname]], levs, 0)
+  attrname <- attributes(xeval)$name
+  
+  levs <- ergm.ego_attr_levels(levels, c(xeval, xaval), egodata, sort(unique(c(xeval, xaval))))
+
+  xe <- match(xeval, levs, 0)
+  xa <- match(xaval, levs, 0)
+
+  egos <- setNames(data.frame(egoIDcol = egos[[egoIDcol]], attrname = xe, stringsAsFactors=FALSE), c(egoIDcol, attrname))
+  alters <- setNames(data.frame(egoIDcol = alters[[egoIDcol]], attrname = xa, stringsAsFactors=FALSE), c(egoIDcol, attrname))
   
   ties<-merge(egos[c(egoIDcol,attrname)],alters[c(egoIDcol,attrname)],by=egoIDcol,suffixes=c(".ego",".alter"))
+  
+  # only consider ties where both ego and alter have attr value included in levs
+  # others do not contribute to the statistics we are generating
+  ties<-ties[ties[,2] > 0 & ties[,3] > 0,]
+  
   names(ties) <- c(egoIDcol,".e",".a")
   
   isolates <- egos[[egoIDcol]][!(egos[[egoIDcol]]%in%ties[[egoIDcol]])] 
   
+  nr <- length(levs)
+  nc <- length(levs)
+
+  levels2.list <- transpose(expand.grid(row = levs, col = levs, stringsAsFactors=FALSE))
+  indices2.grid <- expand.grid(row = 1:nr, col = 1:nc)
+  uun <- as.vector(outer(levs,levs,paste,sep="."))
+    
+  rowleqcol <- indices2.grid$row <= indices2.grid$col
+  levels2.list <- levels2.list[rowleqcol]
+  indices2.grid <- indices2.grid[rowleqcol,]
+  uun <- uun[rowleqcol]
+   
+  levels2.sel <- ergm.ego_attr_levels(levels2, list(row = c(xeval, xaval), col = c(xaval, xeval)), egodata, levels2.list)
+
+  if(!is.null(base) && !identical(base,0) && missing(levels2)) levels2.sel <- levels2.sel[-base]
+    
+  rows2keep <- match(levels2.sel,levels2.list, NA)
+  rows2keep <- rows2keep[!is.na(rows2keep)]
   
-  namevec <- outer(levs,levs,paste,sep=".")
-  namevec <- namevec[upper.tri(namevec,diag=TRUE)]
-  
-  if (!is.null(base) && !identical(base,0)) {
-    namevec <- namevec[-base]
-  }
+  u <- indices2.grid[rows2keep,]
+  namevec <- uun[rows2keep]
   
   mat <- t(apply(cbind(ties[,2:3]),1,sort))
+
   h <- table(ties[,1],paste(levs[mat[,1]],levs[mat[,2]],sep="."))
   
-  h<- t(apply(h,1,function(x)x[namevec,drop=FALSE]))
+  h <- t(apply(h,1,function(x)x[namevec,drop=FALSE]))
+  
+  # handles case of single retained category
+  if(length(namevec) == 1) h <- t(h)
   
   if(length(isolates)){
     isolates.mat <- matrix(0,nrow=length(isolates),ncol=length(namevec))
@@ -221,17 +288,25 @@ EgoStat.nodemix <- function(egodata, attrname, base=NULL){
     h <- rbind(h,isolates.mat)
   }
   
-  h <- h[order(as.numeric(rownames(h))),]
+  h <- h[order(as.numeric(rownames(h))),,drop=FALSE]
   h[is.na(h)] <- 0
   colnames(h) <- paste("mix",attrname,namevec,sep=".")
-  h[match(egodata$egos[[egoIDcol]],rownames(h)),]/2
+  h[match(egodata$egos[[egoIDcol]],rownames(h)),,drop=FALSE]/2
 }
 
 #' @export
-EgoStat.absdiff <- function(egodata, attrname, pow=1){
+EgoStat.absdiff <- function(egodata, attr, pow=1){
   egos <- egodata$egos
   alters <- egodata$alters
   egoIDcol <- egodata$egoIDcol
+  
+  xe <- ergm.ego_get_vattr(attr, egos, accept = "numeric")
+  xa <- ergm.ego_get_vattr(attr, alters, accept = "numeric")
+  
+  attrname <- attributes(xe)$name
+
+  egos <- setNames(data.frame(egoIDcol = egos[[egoIDcol]], attrname = xe, stringsAsFactors=FALSE), c(egoIDcol, attrname))
+  alters <- setNames(data.frame(egoIDcol = alters[[egoIDcol]], attrname = xa, stringsAsFactors=FALSE), c(egoIDcol, attrname))
   
   ties<-merge(egos[c(egoIDcol,attrname)],alters[c(egoIDcol,attrname)],by=egoIDcol,suffixes=c(".ego",".alter"))
   names(ties)<-c(egoIDcol,".e",".a")
@@ -253,14 +328,26 @@ EgoStat.degree <- function(egodata, d, by=NULL, homophily=FALSE, levels=NULL){
   egos <- egodata$egos
   alters <- egodata$alters
   egoIDcol <- egodata$egoIDcol
-  
-  if(!is.null(by)){
-    levs <- NVL(levels, sort(unique(c(egos[[by]],alters[[by]]))))
-  }
-  
-  ties<-merge(egos[c(egoIDcol,by)],alters[c(egoIDcol,by)],by=egoIDcol,suffixes=c(".ego",".alter"))
 
-  if(!is.null(by)) names(ties) <- c(egoIDcol,".e",".a")
+  if(!is.null(by)) {
+    xe <- ergm.ego_get_vattr(by, egos)
+    xa <- ERRVL(try(ergm.ego_get_vattr(by, alters), silent=TRUE), NULL)
+    
+    by <- attributes(xe)$name
+  
+    egos <- setNames(data.frame(egoIDcol = egos[[egoIDcol]], by = xe, stringsAsFactors=FALSE), c(egoIDcol, by))
+    alters <- NVL2(xa, setNames(data.frame(egoIDcol = alters[[egoIDcol]], by = xa, stringsAsFactors=FALSE), c(egoIDcol, by)),
+                       setNames(data.frame(egoIDcol = alters[[egoIDcol]], stringsAsFactors=FALSE), egoIDcol))
+
+    levs <- ergm.ego_attr_levels(levels, c(xe, xa), egodata, sort(unique(c(xe, xa))))
+  }
+
+  alt <- !is.null(by) && !is.null(alters[[by]])
+  if(homophily && !alt) stop("Attribute ", sQuote(by), " must be observed on alters if homophily=TRUE.")
+    
+  ties<-merge(egos[c(egoIDcol,by)],alters[c(egoIDcol,if(alt) by)],by=egoIDcol,suffixes=c(".ego",".alter"))
+
+  if(!is.null(by)) names(ties) <- c(egoIDcol,".e", if(alt) ".a")
   if(!is.null(by) && homophily) ties <- ties[ties$.e==ties$.a,]
   ties$.a <- NULL
 
@@ -300,13 +387,25 @@ EgoStat.degrange <- function(egodata, from=NULL, to=Inf, by=NULL, homophily=FALS
   else if(length(from)!=length(to)) stop("The arguments of term degrange must have arguments either of the same length, or one of them must have length 1.")
   else if(any(from>=to)) stop("Term degrange must have from<to.")
 
-  if(!is.null(by)){
-    levs <- NVL(levels, sort(unique(c(egos[[by]],alters[[by]]))))
+  if(!is.null(by)) {
+    xe <- ergm.ego_get_vattr(by, egos)
+    xa <- ERRVL(try(ergm.ego_get_vattr(by, alters), silent=TRUE), NULL)
+    
+    by <- attributes(xe)$name
+  
+    egos <- setNames(data.frame(egoIDcol = egos[[egoIDcol]], by = xe, stringsAsFactors=FALSE), c(egoIDcol, by))
+    alters <- NVL2(xa, setNames(data.frame(egoIDcol = alters[[egoIDcol]], by = xa, stringsAsFactors=FALSE), c(egoIDcol, by)),
+                       setNames(data.frame(egoIDcol = alters[[egoIDcol]], stringsAsFactors=FALSE), egoIDcol))
+
+    levs <- ergm.ego_attr_levels(levels, c(xe, xa), egodata, sort(unique(c(xe, xa))))
   }
 
-  ties<-merge(egos[c(egoIDcol,by)],alters[c(egoIDcol,by)],by=egoIDcol,suffixes=c(".ego",".alter"))
+  alt <- !is.null(by) && !is.null(alters[[by]])
+  if(homophily && !alt) stop("Attribute ", sQuote(by), " must be observed on alters if homophily=TRUE.")
+  
+  ties<-merge(egos[c(egoIDcol,by)],alters[c(egoIDcol,if(alt) by)],by=egoIDcol,suffixes=c(".ego",".alter"))
 
-  if(!is.null(by)) names(ties) <- c(egoIDcol,".e",".a")
+  if(!is.null(by)) names(ties) <- c(egoIDcol,".e",if(alt) ".a")
   if(!is.null(by) && homophily) ties <- ties[ties$.e==ties$.a,]
   ties$.a <- NULL
 
@@ -350,13 +449,24 @@ EgoStat.concurrent <- function(egodata, by=NULL, levels=NULL){
   alters <- egodata$alters
   egoIDcol <- egodata$egoIDcol
 
-  if(!is.null(by)){
-    levs <- NVL(levels, sort(unique(c(egos[[by]],alters[[by]]))))
+  if(!is.null(by)) {
+    xe <- ergm.ego_get_vattr(by, egos)
+    xa <- ERRVL(try(ergm.ego_get_vattr(by, alters), silent=TRUE), NULL)
+    
+    by <- attributes(xe)$name
+  
+    egos <- setNames(data.frame(egoIDcol = egos[[egoIDcol]], by = xe, stringsAsFactors=FALSE), c(egoIDcol, by))
+    alters <- NVL2(xa, setNames(data.frame(egoIDcol = alters[[egoIDcol]], by = xa, stringsAsFactors=FALSE), c(egoIDcol, by)),
+                       setNames(data.frame(egoIDcol = alters[[egoIDcol]], stringsAsFactors=FALSE), egoIDcol))
+
+    levs <- ergm.ego_attr_levels(levels, c(xe, xa), egodata, sort(unique(c(xe, xa))))
   }
 
-  ties<-merge(egos[c(egoIDcol,by)],alters[c(egoIDcol,by)],by=egoIDcol,suffixes=c(".ego",".alter"))
+  alt <- !is.null(by) && !is.null(alters[[by]])
+   
+  ties<-merge(egos[c(egoIDcol,by)],alters[c(egoIDcol,if(alt) by)],by=egoIDcol,suffixes=c(".ego",".alter"))
 
-  if(!is.null(by)) names(ties) <- c(egoIDcol,".e",".a")
+  if(!is.null(by)) names(ties) <- c(egoIDcol,".e",if(alt) ".a")
   ties$.a <- NULL
 
   alterct <- as.data.frame(table(ties[[egoIDcol]]),stringsAsFactors=FALSE)
@@ -386,13 +496,24 @@ EgoStat.concurrentties <- function(egodata, by=NULL, levels=NULL){
   alters <- egodata$alters
   egoIDcol <- egodata$egoIDcol
 
-  if(!is.null(by)){
-    levs <- NVL(levels, sort(unique(c(egos[[by]],alters[[by]]))))
+  if(!is.null(by)) {
+    xe <- ergm.ego_get_vattr(by, egos)
+    xa <- ERRVL(try(ergm.ego_get_vattr(by, alters), silent=TRUE), NULL)
+    
+    by <- attributes(xe)$name
+  
+    egos <- setNames(data.frame(egoIDcol = egos[[egoIDcol]], by = xe, stringsAsFactors=FALSE), c(egoIDcol, by))
+    alters <- NVL2(xa, setNames(data.frame(egoIDcol = alters[[egoIDcol]], by = xa, stringsAsFactors=FALSE), c(egoIDcol, by)),
+                       setNames(data.frame(egoIDcol = alters[[egoIDcol]], stringsAsFactors=FALSE), egoIDcol))
+
+    levs <- ergm.ego_attr_levels(levels, c(xe, xa), egodata, sort(unique(c(xe, xa))))
   }
 
-  ties<-merge(egos[c(egoIDcol,by)],alters[c(egoIDcol,by)],by=egoIDcol,suffixes=c(".ego",".alter"))
+  alt <- !is.null(by) && !is.null(alters[[by]])
+  
+  ties<-merge(egos[c(egoIDcol,by)],alters[c(egoIDcol,if(alt) by)],by=egoIDcol,suffixes=c(".ego",".alter"))
 
-  if(!is.null(by)) names(ties) <- c(egoIDcol,".e",".a")
+  if(!is.null(by)) names(ties) <- c(egoIDcol,".e",if(alt) ".a")
   ties$.a <- NULL
 
   alterct <- as.data.frame(table(ties[[egoIDcol]]),stringsAsFactors=FALSE)
@@ -484,15 +605,21 @@ EgoStat.mm <- function(egodata, attrs, levels=NULL, levels2=NULL){
                       2)
              )
       }else{
-        xe <- ergm.ego_get_vattr(spec$attrs, egos)
-        xa <- ergm.ego_get_vattr(spec$attrs, alters)
-        xae <- merge(data.frame(i=egos[[egoIDcol]],xe=xe, stringsAsFactors=FALSE),
-                     data.frame(i=alters[[egoIDcol]],xa=xa, stringsAsFactors=FALSE))
+        xe <- ERRVL(ec <- try(ergm.ego_get_vattr(spec$attrs, egos), silent=TRUE), NULL)
+        xa <- ERRVL(try(ergm.ego_get_vattr(spec$attrs, alters), silent=TRUE), NULL)
+        name <- attr(NVL(xe,xa), "name")
+        if(is.null(xe)&&is.null(xa)) stop(attr(ec, "condition"), call.=FALSE) # I.e., they were both errors. => propagate error message.
+        xe <- NVL2(xe,
+                   data.frame(i=egos[[egoIDcol]], xe=xe, stringsAsFactors=FALSE),
+                   data.frame(i=egos[[egoIDcol]], stringsAsFactors=FALSE))
+        xa <- NVL2(xa,
+                   data.frame(i=alters[[egoIDcol]], xa=xa, stringsAsFactors=FALSE),
+                   data.frame(i=alters[[egoIDcol]], stringsAsFactors=FALSE))
+        xae <- merge(xe,xa)
         x <- switch(whose,
-                    row = c(xae$xe,xae$xa),
-                    col = c(xae$xa,xae$xe))
-        name <- attr(xe, "name")
-        list(name=name, id=rep(xae$i,2), val=x, levels=spec$levels, unique=sort(unique(x)))
+                    row = c(NVL(xae$xe,xae$xa),NVL(xae$xa,xae$xe)),
+                    col = c(NVL(xae$xa,xae$xe),NVL(xae$xe,xae$xa)))
+        list(name=name, id=rep(xae$i,length.out=length(x)), val=x, levels=spec$levels, unique=sort(unique(x)))
       }
     })
 
@@ -562,7 +689,7 @@ EgoStat.mm <- function(egodata, attrs, levels=NULL, levels2=NULL){
     selff <- 1+map_lgl(levels2codes, all_identical)
     h <- sweep(h, 2, selff, `/`)
   }
-  
+ 
   h <- h[match(egos[[egoIDcol]], i),,drop=FALSE]/2
   h[is.na(h)] <- 0
   h

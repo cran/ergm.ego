@@ -1,11 +1,11 @@
 #  File R/ergm.ego.R in package ergm.ego, part of the Statnet suite
-#  of packages for network analysis, http://statnet.org .
+#  of packages for network analysis, https://statnet.org .
 #
 #  This software is distributed under the GPL-3 license.  It is free,
 #  open source, and has the attribution requirements (GPL Section 7) at
-#  http://statnet.org/attribution
+#  https://statnet.org/attribution
 #
-#  Copyright 2015-2018 Statnet Commons
+#  Copyright 2015-2019 Statnet Commons
 #######################################################################
 
 
@@ -99,7 +99,8 @@ ergm.ego <- function(formula, popsize=1, offset.coef=NULL, ..., control=control.
 
   sampsize <- dim(egodata)[1]
   ppopsize <-
-    if(is.data.frame(control$ppopsize)) nrow(control$ppopsize)
+    if(is.network(control$ppopsize)) network.size(control$ppopsize)
+    else if(is.data.frame(control$ppopsize)) nrow(control$ppopsize)
     else if(is.numeric(control$ppopsize)) control$ppopsize
     else switch(control$ppopsize,
                 auto = if(missing(popsize) || popsize==1) sampsize*control$ppopsize.mul else popsize*control$ppopsize.mul,  
@@ -112,7 +113,9 @@ ergm.ego <- function(formula, popsize=1, offset.coef=NULL, ..., control=control.
   
   message("Constructing pseudopopulation network.")
   popnw <-
-    if(is.data.frame(control$ppopsize)){ # If pseudopoluation composition is given in popsize, use that.
+    if(is.network(control$ppopsize)){  # If pseudopopulation network is given in popsize, use that.
+      control$ppopsize
+    }else if(is.data.frame(control$ppopsize)){ # If pseudopoluation composition is given in popsize, use that.
       pegos <- control$ppopsize
       pegos[[".pegoID"]] <- 1:nrow(pegos)
       pdata <- egodata(pegos, data.frame(.pegoID=c()), egoIDcol = ".pegoID")
@@ -205,6 +208,17 @@ ergm.ego <- function(formula, popsize=1, offset.coef=NULL, ..., control=control.
   }
   
   ergm.formula <- nonsimp_update.formula(formula,popnw~offset(netsize.adj)+.,from.new="popnw")
+
+  ergm.names <- param_names(ergm_model(deoffset(ergm.formula)), offset=FALSE)
+  if(!setequal(ergm.names,names(m))){
+    ergm.not.ts <- setdiff(ergm.names, names(m))
+    ts.not.ergm <- setdiff(names(m), ergm.names)
+    errstr <-
+      if(length(ergm.not.ts)) paste("statistics", paste.and(sQuote(ergm.not.ts)), "required by the ERGM could not be estimated from data.")
+      else paste("statistics", paste.and(sQuote(ts.not.ergm)), "estimated from data are extraneous to the ERGM.")
+    stop("There appears to be a mismatch between estimated statistic and the sufficient statistic of the ERGM: ", errstr, " A common cause of this is that egos and alters do not have a consistent set of levels for one or more factors.")
+  }
+  
   ergm.offset.coef <- c(-log(ppopsize/popsize),offset.coef)
   out <- list(v=v, m=m, formula=formula, ergm.formula=ergm.formula, offset.coef=offset.coef, ergm.offset.coef=ergm.offset.coef, egodata=egodata, ppopsize=ppopsize, popsize=popsize)
   
@@ -222,12 +236,18 @@ ergm.ego <- function(formula, popsize=1, offset.coef=NULL, ..., control=control.
     coef <- coef(ergm.fit)
 
     oi <- ergm.fit$etamap$offsettheta
-
+    
     DtDe <- -ergm.fit$hessian[!oi,!oi,drop=FALSE]
 
+    novar <- diag(DtDe)<sqrt(.Machine$double.eps)
+
+    if(any(novar)) warning("Unable to estimate standard errors for parameters ",paste.and(names(novar)[novar],oq="'",cq="'"),". Try increasing MCMC sample size and interval.")
+    oi[!oi][novar] <- TRUE
+    
     vcov <- matrix(NA, length(coef), length(coef))
-  
-    vcov[!oi,!oi] <- solve(DtDe)%*%v%*%solve(DtDe)
+
+    iDtDe <- solve(DtDe[!novar,!novar,drop=FALSE])
+    vcov[!oi,!oi] <- iDtDe%*%v[!novar,!novar,drop=FALSE]%*%iDtDe
     
     rownames(vcov) <- colnames(vcov) <- names(coef)
 
