@@ -5,7 +5,7 @@
 #  open source, and has the attribution requirements (GPL Section 7) at
 #  https://statnet.org/attribution
 #
-#  Copyright 2015-2019 Statnet Commons
+#  Copyright 2015-2020 Statnet Commons
 #######################################################################
 
 
@@ -16,7 +16,7 @@
 #' 
 #' 
 #' @param ppopsize,ppopsize.mul Parameters to determine the size
-#'   \eqn{|N'|} of the pseudopopulation network. \code{popsize} can be
+#'   \eqn{|N'|} of the pseudopopulation network. \code{ppopsize} can be
 #'   \describe{
 #' 
 #' \item{"auto"}{If the \code{popsize} (\eqn{|N|}) argument is
@@ -97,7 +97,7 @@ control.ergm.ego <- function(
   boot.R = 10000,
   ergm.control = control.ergm(),
   ...){
-  match.arg.pars <- c("stats.est", "ppop.wt", "stats.wt", if(!is.numeric(ppopsize) && !is.data.frame(ppopsize)) "ppopsize")
+  match.arg.pars <- c("stats.est", "ppop.wt", "stats.wt", if(is.character(ppopsize)) "ppopsize")
 
   control<-list()
   formal.args<-formals(sys.function())

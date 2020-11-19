@@ -5,16 +5,15 @@
 #  open source, and has the attribution requirements (GPL Section 7) at
 #  https://statnet.org/attribution
 #
-#  Copyright 2015-2019 Statnet Commons
+#  Copyright 2015-2020 Statnet Commons
 #######################################################################
-#' @name node-attr-api
+#' @name nodal_attributes-API
 #' @title Helper functions for specifying nodal attribute levels
 #'
-#' @description These functions are meant to be used in `EgoStat` and
-#'   other implementations to provide the user with a way to extract
-#'   nodal attributes and select their levels in standardized and
-#'   flexible ways described under [`node-attr`]. They are intended to
-#'   parallel [node-attr-api] of `ergm` package.
+#' @description These functions are meant to be used in `EgoStat` and other
+#'   implementations to provide the user with a way to extract nodal attributes
+#'   and select their levels in standardized and flexible ways. They are
+#'   intended to parallel [ergm::nodal_attributes-API] of `ergm` package.
 #'
 #' @param object An argument specifying the nodal attribute to select
 #'   or which levels to include.
@@ -69,7 +68,7 @@
 #'
 NULL
 
-#' @rdname node-attr-api
+#' @rdname nodal_attributes-API
 #'
 #' @description `ergm.ego_get_vattr` extracts and processes the specified
 #'   nodal attribute vector. It is strongly recommended that
@@ -142,9 +141,8 @@ ergm.ego_get_vattr <- function(object, df, accept="character", multiple=if(accep
   x
 }
 
-#' @rdname node-attr-api
+#' @rdname nodal_attributes-API
 #' @importFrom purrr "%>%" "map" "pmap_chr"
-#' @importFrom rlang set_attrs
 #' @export
 ergm.ego_get_vattr.character <- function(object, df, accept="character", multiple=if(accept=="character") "paste" else "stop", ...){
   multiple <- match.arg(multiple, ERGM_GET_VATTR_MULTIPLE_TYPES)
@@ -155,26 +153,26 @@ ergm.ego_get_vattr.character <- function(object, df, accept="character", multipl
   }
 
   object %>% map(~df[[.]]) %>% set_names(object) %>% .handle_multiple(multiple=multiple) %>%
-    .rightsize_vattr(df) %>% set_attrs(name=paste(object, collapse=".")) %>%
+    .rightsize_vattr(df) %>% structure(name=paste(object, collapse=".")) %>%
     .check_acceptable(accept=accept, xspec=object)
 }
 
 
-#' @rdname node-attr-api
+#' @rdname nodal_attributes-API
 #' @export
 ergm.ego_get_vattr.function <- function(object, df, accept="character", multiple=if(accept=="character") "paste" else "stop", ...){
   multiple <- match.arg(multiple, ERGM_GET_VATTR_MULTIPLE_TYPES)
 
   ERRVL(try(object(df, ...) %>%
             .rightsize_vattr(df) %>% .handle_multiple(multiple=multiple) %>%
-            set_attrs(name=strtrim(despace(paste(deparse(body(object)),collapse="\n")),80)),
+            structure(name=strtrim(despace(paste(deparse(body(object)),collapse="\n")),80)),
             silent=TRUE),
         ergm_Init_abort(.)) %>%
     .check_acceptable(accept=accept)
 }
 
 
-#' @rdname node-attr-api
+#' @rdname nodal_attributes-API
 #' @importFrom purrr "%>%" map set_names when
 #' @importFrom tibble lst
 #' @export
@@ -189,13 +187,13 @@ ergm.ego_get_vattr.formula <- function(object, df, accept="character", multiple=
   ERRVL(try({
     eval(e, envir=vlist, enclos=environment(object)) %>%
       .rightsize_vattr(df) %>% .handle_multiple(multiple=multiple) %>%
-      set_attrs(name=if(length(object)>2) eval_lhs.formula(object) else despace(paste(deparse(e),collapse="\n")))
+      structure(name=if(length(object)>2) eval_lhs.formula(object) else despace(paste(deparse(e),collapse="\n")))
   }, silent=TRUE),
   ergm_Init_abort(.)) %>%
     .check_acceptable(accept=accept, xspec=object)
 }
 
-#' @rdname node-attr-api
+#' @rdname nodal_attributes-API
 #'
 #' @description `ergm.ego_attr_levels` filters the levels of the
 #'   attribute.  It is strongly recommended that [check.ErgmTerm()]'s
@@ -216,33 +214,33 @@ ergm.ego_attr_levels <- function(object, attr, egodata, levels=sort(unique(attr)
   UseMethod("ergm.ego_attr_levels")
 }
 
-#' @rdname node-attr-api
+#' @rdname nodal_attributes-API
 #' @export
 ergm.ego_attr_levels.numeric <- function(object, attr, egodata, levels=sort(unique(attr)), ...){
   levels[object]
 }
 
-#' @rdname node-attr-api
+#' @rdname nodal_attributes-API
 #' @export
 ergm.ego_attr_levels.logical <- ergm.ego_attr_levels.numeric
 
-#' @rdname node-attr-api
+#' @rdname nodal_attributes-API
 #' @export
 ergm.ego_attr_levels.AsIs <- function(object, attr, egodata, levels=sort(unique(attr)), ...){
   object
 }
 
-#' @rdname node-attr-api
+#' @rdname nodal_attributes-API
 #' @export
 ergm.ego_attr_levels.character <- ergm.ego_attr_levels.AsIs
 
-#' @rdname node-attr-api
+#' @rdname nodal_attributes-API
 #' @export
 ergm.ego_attr_levels.NULL <- function(object, attr, egodata, levels=sort(unique(attr)), ...){
   levels
 }
 
-#' @rdname node-attr-api
+#' @rdname nodal_attributes-API
 #' @export
 ergm.ego_attr_levels.function <- function(object, attr, egodata, levels=sort(unique(attr)), ...){
   object <- if('...' %in% names(formals(object))) object(levels, attr, egodata, ...)
@@ -253,7 +251,7 @@ ergm.ego_attr_levels.function <- function(object, attr, egodata, levels=sort(uni
   ergm.ego_attr_levels(object, attr, egodata, levels, ...)
 }
 
-#' @rdname node-attr-api
+#' @rdname nodal_attributes-API
 #' @export
 ergm.ego_attr_levels.formula <- function(object, attr, egodata, levels=sort(unique(attr)), ...){
   vlist <- lst(`.`=levels, .levels=levels, .attr=attr, .egodata=egodata, ...)

@@ -5,7 +5,7 @@
 #  open source, and has the attribution requirements (GPL Section 7) at
 #  https://statnet.org/attribution
 #
-#  Copyright 2015-2019 Statnet Commons
+#  Copyright 2015-2020 Statnet Commons
 #######################################################################
 library(ergm.ego)
 library(ergm)
@@ -66,7 +66,9 @@ f <- ~ edges +
   offset(nodemix("b", levels = -2, levels2 = -3)) + 
   
   mm("a") + mm("a", levels2=~-1) + mm("a", levels2=-2) + mm("a", levels2=-(2:3)) + mm(~a>7) + mm(a~b) + mm(.~a) + offset(mm(.~a)) + mm("a", levels2 = 1) + 
-  mm("b", levels = c("a", "c", "e")) + mm("b", levels = c("a", "c", "e"), levels2 = 3)
+  mm("b", levels = c("a", "c", "e")) + mm("b", levels = c("a", "c", "e"), levels2 = 3) +
+
+  meandeg
 
 f.y <- statnet.common::nonsimp_update.formula(f, y~.)
 environment(f.y) <- globalenv()

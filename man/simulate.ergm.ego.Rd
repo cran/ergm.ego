@@ -4,11 +4,17 @@
 \alias{simulate.ergm.ego}
 \title{Simulate from a \code{\link{ergm.ego}} fit.}
 \usage{
-\method{simulate}{ergm.ego}(object, nsim = 1, seed = NULL,
-  constraints = object$constraints, popsize = if (object$popsize == 1)
-  object$ppopsize else object$popsize,
-  control = control.simulate.ergm.ego(), output = c("network", "stats",
-  "edgelist", "pending_update_network"), ..., verbose = FALSE)
+\method{simulate}{ergm.ego}(
+  object,
+  nsim = 1,
+  seed = NULL,
+  constraints = object$constraints,
+  popsize = if (object$popsize == 1) object$ppopsize else object$popsize,
+  control = control.simulate.ergm.ego(),
+  output = c("network", "stats", "edgelist", "pending_update_network", "ergm_state"),
+  ...,
+  verbose = FALSE
+)
 }
 \arguments{
 \item{object}{An \code{\link{ergm.ego}} fit.}
@@ -27,9 +33,9 @@ of actors.}
 
 \item{control}{A \code{\link{control.simulate.ergm.ego}} control list.}
 
-\item{output}{one of \code{"network"}, \code{"stats"}, \code{"edgelist"}, or
-\code{"pending_update_network"}. See help for \code{\link[=simulate.ergm]{simulate.ergm()}} for
-explanation.}
+\item{output}{one of \code{"network"}, \code{"stats"}, \code{"edgelist"},
+\code{"pending_update_network"}, or, for future compatibility,
+\code{"ergm_state"}. See help for \code{\link[=simulate.ergm]{simulate.ergm()}} for explanation.}
 
 \item{verbose}{Verbosity of output.}
 }

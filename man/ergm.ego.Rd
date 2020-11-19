@@ -5,8 +5,15 @@
 \title{Inference for Exponential-Family Random Graph Models based on Egocentrically
 Sampled Data}
 \usage{
-ergm.ego(formula, popsize = 1, offset.coef = NULL, ...,
-  control = control.ergm.ego(), na.action = na.fail, do.fit = TRUE)
+ergm.ego(
+  formula,
+  popsize = 1,
+  offset.coef = NULL,
+  ...,
+  control = control.ergm.ego(),
+  na.action = na.fail,
+  do.fit = TRUE
+)
 }
 \arguments{
 \item{formula}{An \code{\link{formula}} object, of the form \code{e ~ <model
@@ -36,17 +43,21 @@ when the terms need them.}
 \value{
 An object of class \code{ergm.ego} inheriting from
 \code{\link[ergm]{ergm}}, with the following additional or overridden
-elements: \item{"v"}{Variance-covariance matrix of the estimate of the
-sufficient statistics} \item{"m"}{Estimate of the sufficient
-statistics} \item{"egodata"}{The egodata object passed}
-\item{"popsize"}{Population network size and pseudopopulation size
-used, respectively}\item{, }{Population network size and pseudopopulation
-size used, respectively}\item{"ppopsize"}{Population network size and
-pseudopopulation size used, respectively} \item{"coef"}{The
+elements:
+\item{"v"}{Variance-covariance matrix of the estimate of the
+sufficient statistics}
+\item{"m"}{Estimate of the sufficient
+statistics}
+\item{"egodata"}{The egodata object passed}
+\item{"popsize"}{Population network size used}
+\item{"ppopsize"}{Pseudopopulation size used, see \code{\link{control.ergm.ego}}}
+\item{"coef"}{The
 coefficients, along with the network size adjustment \code{netsize.adj}
-coefficient.} \item{"covar"}{Pseudo-MLE estimate of the
+coefficient.}
+\item{"covar"}{Pseudo-MLE estimate of the
 variance-covariance matrix of the parameter estimates under repeated
-egocentric sampling} \item{"ergm.covar"}{ The variance-covariance matrix of
+egocentric sampling}
+\item{"ergm.covar"}{ The variance-covariance matrix of
 parameter estimates under the ERGM superpopulation process (without
 incorporating sampling).  }
 \item{"DtDe"}{Estimated Jacobian of the expectation of the sufficient
@@ -54,7 +65,7 @@ statistics with respect to the model parameters}
 }
 \description{
 A wrapper around the \code{\link[ergm]{ergm}} to fit an ERGM to an
-\code{\link{egodata}}.
+\code{\link{egodata}} object.
 }
 \examples{
 

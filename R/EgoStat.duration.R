@@ -5,9 +5,8 @@
 #  open source, and has the attribution requirements (GPL Section 7) at
 #  https://statnet.org/attribution
 #
-#  Copyright 2015-2019 Statnet Commons
+#  Copyright 2015-2020 Statnet Commons
 #######################################################################
-#' @export
 EgoStat.mean.age <- function(egodata, emptyval=0){
   startcol <- egodata$startcol
   if(is.null(startcol)) stop("Egocentric dataset does not appear to contain durational information.")

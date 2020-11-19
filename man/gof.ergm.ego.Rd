@@ -5,8 +5,13 @@
 \title{Conduct Goodness-of-Fit Diagnostics on a Exponential Family Random Graph
 Model fit to Egocentrically Sampled Data}
 \usage{
-\method{gof}{ergm.ego}(object, ..., GOF = c("model", "degree"),
-  control = control.gof.ergm(), verbose = FALSE)
+\method{gof}{ergm.ego}(
+  object,
+  ...,
+  GOF = c("model", "degree"),
+  control = control.gof.ergm(),
+  verbose = FALSE
+)
 }
 \arguments{
 \item{object}{An \code{\link{ergm.ego}} fit.}
@@ -45,11 +50,11 @@ egofit <- ergm.ego(fmh.ego~edges+degree(0:3)+nodefactor("Race")+nodematch("Race"
 # Check whether the model "converged":
 (modelgof <- gof(egofit, GOF="model"))
 plot(modelgof)
-
+\donttest{
 # Check whether the model reconstructs the degree distribution:
 (deggof <- gof(egofit, GOF="degree"))
 plot(deggof)
-
+}
 }
 \seealso{
 For examples, see \code{\link{ergm.ego}}.

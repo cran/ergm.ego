@@ -5,7 +5,7 @@
 #  open source, and has the attribution requirements (GPL Section 7) at
 #  https://statnet.org/attribution
 #
-#  Copyright 2015-2019 Statnet Commons
+#  Copyright 2015-2020 Statnet Commons
 #######################################################################
 # This file contains the following 8 functions for assessing goodness of fit
 #         <gof>              <summary.gofobject>
@@ -116,11 +116,11 @@
 #' # Check whether the model "converged":
 #' (modelgof <- gof(egofit, GOF="model"))
 #' plot(modelgof)
-#' 
+#' \donttest{
 #' # Check whether the model reconstructs the degree distribution:
 #' (deggof <- gof(egofit, GOF="degree"))
 #' plot(deggof)
-#'
+#' }
 #' @import ergm stats
 #' @method gof ergm.ego
 #' @export

@@ -5,7 +5,7 @@
 #  open source, and has the attribution requirements (GPL Section 7) at
 #  https://statnet.org/attribution
 #
-#  Copyright 2015-2019 Statnet Commons
+#  Copyright 2015-2020 Statnet Commons
 #######################################################################
 
 
@@ -13,7 +13,7 @@
 #' Sampled Data
 #' 
 #' A wrapper around the \code{\link[ergm]{ergm}} to fit an ERGM to an
-#' \code{\link{egodata}}.
+#' \code{\link{egodata}} object.
 #' 
 #' 
 #' @param formula An \code{\link{formula}} object, of the form \code{e ~ <model
@@ -35,17 +35,21 @@
 #' @param do.fit Whether to actually call \code{\link[ergm]{ergm}}
 #' @return An object of class \code{ergm.ego} inheriting from
 #' \code{\link[ergm]{ergm}}, with the following additional or overridden
-#' elements: \item{"v"}{Variance-covariance matrix of the estimate of the
-#' sufficient statistics} \item{"m"}{Estimate of the sufficient
-#' statistics} \item{"egodata"}{The egodata object passed}
-#' \item{"popsize"}{Population network size and pseudopopulation size
-#' used, respectively}\item{, }{Population network size and pseudopopulation
-#' size used, respectively}\item{"ppopsize"}{Population network size and
-#' pseudopopulation size used, respectively} \item{"coef"}{The
+#' elements:
+#' \item{"v"}{Variance-covariance matrix of the estimate of the
+#' sufficient statistics}
+#' \item{"m"}{Estimate of the sufficient
+#' statistics}
+#' \item{"egodata"}{The egodata object passed}
+#' \item{"popsize"}{Population network size used}
+#' \item{"ppopsize"}{Pseudopopulation size used, see \code{\link{control.ergm.ego}}}
+#' \item{"coef"}{The
 #' coefficients, along with the network size adjustment \code{netsize.adj}
-#' coefficient.} \item{"covar"}{Pseudo-MLE estimate of the
+#' coefficient.}
+#' \item{"covar"}{Pseudo-MLE estimate of the
 #' variance-covariance matrix of the parameter estimates under repeated
-#' egocentric sampling} \item{"ergm.covar"}{ The variance-covariance matrix of
+#' egocentric sampling}
+#' \item{"ergm.covar"}{ The variance-covariance matrix of
 #' parameter estimates under the ERGM superpopulation process (without
 #' incorporating sampling).  }
 #' \item{"DtDe"}{Estimated Jacobian of the expectation of the sufficient
@@ -236,6 +240,7 @@ ergm.ego <- function(formula, popsize=1, offset.coef=NULL, ..., control=control.
     coef <- coef(ergm.fit)
 
     oi <- ergm.fit$etamap$offsettheta
+    dropped <- oi[!ergm_model(ergm.formula)$etamap$offsettheta]
     
     DtDe <- -ergm.fit$hessian[!oi,!oi,drop=FALSE]
 
@@ -247,7 +252,7 @@ ergm.ego <- function(formula, popsize=1, offset.coef=NULL, ..., control=control.
     vcov <- matrix(NA, length(coef), length(coef))
 
     iDtDe <- solve(DtDe[!novar,!novar,drop=FALSE])
-    vcov[!oi,!oi] <- iDtDe%*%v[!novar,!novar,drop=FALSE]%*%iDtDe
+    vcov[!oi,!oi] <- iDtDe%*%v[!dropped,!dropped,drop=FALSE][!novar,!novar,drop=FALSE]%*%iDtDe
     
     rownames(vcov) <- colnames(vcov) <- names(coef)
 
