@@ -1,12 +1,12 @@
-#  File R/gof.ergm.ego.R in package ergm.ego, part of the Statnet suite
-#  of packages for network analysis, https://statnet.org .
+#  File R/gof.ergm.ego.R in package ergm.ego, part of the
+#  Statnet suite of packages for network analysis, https://statnet.org .
 #
 #  This software is distributed under the GPL-3 license.  It is free,
 #  open source, and has the attribution requirements (GPL Section 7) at
-#  https://statnet.org/attribution
+#  https://statnet.org/attribution .
 #
-#  Copyright 2015-2020 Statnet Commons
-#######################################################################
+#  Copyright 2015-2021 Statnet Commons
+################################################################################
 # This file contains the following 8 functions for assessing goodness of fit
 #         <gof>              <summary.gofobject>
 #         <gof.default>      <plot.gofobject>
@@ -89,23 +89,24 @@
 #' 
 #' 
 #' @param object An \code{\link{ergm.ego}} fit.
-#' @param \dots Additional arguments, currently unused.
+#' @param ... Additional arguments. Unused by [gof.ergm.ego()], passed to
+#'   [ergm::plot.gof()] by [plot.gof.ergm.ego()]
 #' @param GOF A string specifying the statistics whose goodness of fit is to be
-#' evaluated. Currently, only \dQuote{degree} and \dQuote{model} are
+#' evaluated. Currently, only \dQuote{degree}, \dQuote{espartners} and \dQuote{model} are
 #' implemented; see \code{\link[ergm]{gof}} documentation for details.
 #' @param control A list to control parameters, constructed using
 #' \code{\link{control.gof.formula}} or \code{\link{control.gof.ergm}} (which
 #' have different defaults).
 #' @param verbose Provide verbose information on the progress of the
 #' simulation.
-#' @return An object of class \code{\link[ergm:gof]{gofobject}}.
+#' @return An object of class [`gof.ergm.ego`], inheriting from \code{\link[ergm:gof.ergm]{gof.ergm}}.
 #' @author Pavel N. Krivitsky
 #' @seealso For examples, see \code{\link{ergm.ego}}.
 #' @keywords models
 #' @examples
-#' 
+#' \donttest{
 #' data(faux.mesa.high)
-#' fmh.ego <- as.egodata(faux.mesa.high)
+#' fmh.ego <- as.egor(faux.mesa.high)
 #' 
 #' head(fmh.ego)
 #' 
@@ -116,16 +117,21 @@
 #' # Check whether the model "converged":
 #' (modelgof <- gof(egofit, GOF="model"))
 #' plot(modelgof)
-#' \donttest{
+#' 
 #' # Check whether the model reconstructs the degree distribution:
 #' (deggof <- gof(egofit, GOF="degree"))
 #' plot(deggof)
 #' }
 #' @import ergm stats
 #' @method gof ergm.ego
+#'
+#' @references
+#'
+#' * David R. Hunter, Steven M. Goodreau, and Mark S. Handcock (2008). "Goodness of Fit of Social Network Models." *Journal of the American Statistical Association*, 103:481: 248–258. \doi{10.1198/016214507000000446}
+#'
 #' @export
 gof.ergm.ego <- function (object, ..., 
-                          GOF=c("model","degree"), 
+                          GOF=c("model","degree", "espartners"), 
                           control=control.gof.ergm(),
                           verbose=FALSE) {
   statnet.common::check.control.class(c("gof.ergm","gof.formula"), "gof.ergm.ego")
@@ -135,10 +141,10 @@ gof.ergm.ego <- function (object, ...,
     GOF<- ~degree
   }
 
-  .gof.egodata <- object$egodata
-  formula <- nonsimp_update.formula(object$formula, .gof.egodata~., from.new=".gof.egodata")
+  .gof.egor <- object$egor
+  formula <- nonsimp_update.formula(object$formula, .gof.egor~., from.new=".gof.egor")
   
-  control.transfer <- c("MCMC.burnin", "MCMC.prop.weights", "MCMC.prop.args", "MCMC.packagenames", "MCMC.init.maxedges")
+  control.transfer <- c("MCMC.burnin", "MCMC.prop", "MCMC.prop.weights", "MCMC.prop.args", "MCMC.packagenames", "MCMC.init.maxedges")
   for(arg in control.transfer)
     if(is.null(control[[arg]]))
       control[arg] <- list(object$control[[arg]])
@@ -163,15 +169,41 @@ gof.ergm.ego <- function (object, ...,
   
   if ('model' %in% GOF) {
     obs.model <- summary(formula, scaleto=1)
-    sim.model <- simulate(object, nsim=control$nsim, seed=control$seed, popsize=object$ppopsize, control=control.simulate.ergm.ego(simulate.control=set.control.class("control.simulate.formula",control)),...,verbose=verbose, output="stats")/n
+    sim.model <- simulate(object, nsim=control$nsim, seed=control$seed, popsize=object$ppopsize, control=control.simulate.ergm.ego(simulate=set.control.class("control.simulate.formula",control)),...,verbose=verbose, output="stats")/n
   }
 
   if ('degree' %in% GOF) {
-    egodata <- object$egodata
-    maxdeg <- max(table(egodata$alters[[egodata$egoIDcol]]),3)*2
-    obs.deg <- summary(as.formula(paste0("egodata~degree(0:",maxdeg-1,")+degrange(",maxdeg,")")), scaleto=1)
-    sim.deg <- simulate(object, nsim=control$nsim, seed=control$seed, popsize=object$ppopsize, control=control.simulate.ergm.ego(simulate.control=set.control.class("control.simulate.formula",control)),...,verbose=verbose, output="stats", monitor=as.formula(paste0("~degree(0:",maxdeg-1,")+degrange(",maxdeg,")")))
+    egor <- object$egor
+    maxdeg <- max(.degreeseq(egor),3)*2
+    obs.deg <- summary(as.formula(paste0("egor~degree(0:",maxdeg-1,")+degrange(",maxdeg,")")), scaleto=1)
+    sim.deg <- simulate(object, nsim=control$nsim, seed=control$seed, popsize=object$ppopsize, control=control.simulate.ergm.ego(simulate=set.control.class("control.simulate.formula",control)),...,verbose=verbose, output="stats", monitor=as.formula(paste0("~degree(0:",maxdeg-1,")+degrange(",maxdeg,")")))
     sim.deg <- sim.deg[, ncol(sim.deg)-(maxdeg:0), drop=FALSE]/n
+  }
+  
+  if("espartners" %in% GOF) {
+    egor <- object$egor
+    # Maximum esp = max(egodegree) + 1 - 2
+    maxdeg <- max(.degreeseq(egor), 3)
+    maxesp <- (maxdeg - 1)*2
+    obs.esp <- summary(
+      as.formula(paste0("egor ~ esp(0:", maxesp, ")")),
+      scaleto = 1
+    )
+    sim.esp <- simulate(
+      object, 
+      nsim=control$nsim, 
+      seed=control$seed, 
+      popsize=object$ppopsize, 
+      control = control.simulate.ergm.ego(
+        simulate = set.control.class("control.simulate.formula",control)
+      ),
+      ...,
+      verbose=verbose, 
+      output="stats", 
+      monitor=as.formula(paste0("~ esp(0:",maxesp,")"))
+    )
+    nams <- sort(unique(grep("^esp[0-9]+$", colnames(sim.esp), value = TRUE)))
+    sim.esp <- sim.esp[ , nams] / n
   }
 
   if(verbose)
@@ -218,7 +250,60 @@ gof.ergm.ego <- function (object, ...,
     returnlist$obs.deg <- obs.deg
     returnlist$sim.deg <- sim.deg
   }
+  
+  if("espartners" %in% GOF) {
+    pval.esp <- apply(sim.esp <= obs.esp[col(sim.esp)], 2, mean)
+    pval.esp.top <- apply(sim.esp >= obs.esp[col(sim.esp)], 2, mean)
+    pval.esp <- cbind(
+      obs.esp,
+      apply(sim.esp, 2, min), 
+      apply(sim.esp, 2, mean),
+      apply(sim.esp, 2, max), 
+      pmin(1, 2*pmin(pval.esp, pval.esp.top))
+    )
+    dimnames(pval.esp)[[2]] <- c("obs","min","mean","max","MC p-value")
+    pobs.esp <- obs.esp / sum(obs.esp)
+    psim.esp <- sweep(sim.esp, 1 ,apply(sim.esp, 1, sum), "/")
+    psim.esp[is.na(psim.esp)] <- 1
+    bds.esp <- apply(psim.esp, 2, quantile,probs=c(0.025,0.975))
+    
+    returnlist$summary.espart <- returnlist$pval.espart <- pval.esp
+    returnlist$pobs.espart <- pobs.esp
+    returnlist$psim.espart <- psim.esp
+    returnlist$bds.espart <- bds.esp
+    returnlist$obs.espart <- obs.esp
+    returnlist$sim.espart <- sim.esp
+    
+  }
 
-  class(returnlist) <- "gof"
+  class(returnlist) <- c("gof.ergm.ego", "gof.ergm", "gof")
   returnlist
+}
+
+#' @rdname gof.ergm.ego
+#' @description An enhanced plotting method is also provided, giving uncertainty bars for the observed statistics as well.
+#' @param x an object returned by [gof.ergm.ego()].
+#' @param ego.conf.level confidence level for the observed statistic estimates as well.
+#' @method plot gof.ergm.ego
+#' @importFrom graphics lines
+#' @export
+plot.gof.ergm.ego <- function(x, ..., ego.conf.level=0.95){
+  # Call the plotting method for gof objects in general.
+  NextMethod()
+  # Add confidence intervals based on some `obs` stats
+  add_obs_ci <- function(obs, conf.level) {
+    obs.CI <- confint(obs, level=conf.level) # svydesign() summary objects have the necessary components for a confint() method.
+    xvals <- seq_len(nrow(obs.CI))
+    lines(xvals, obs.CI[,1], lty=3)
+    lines(xvals, obs.CI[,2], lty=3)
+    obs.CI
+  }
+  # Now, overplot with our statistics if degrees.
+  if(!is.null(x$obs.deg)) {
+    invisible(add_obs_ci(x$obs.deg, conf.level = ego.conf.level))
+  } 
+  if(!is.null(x$obs.espart)) {
+    invisible(add_obs_ci(x$obs.espart, conf.level = ego.conf.level))
+  }
+  invisible()
 }

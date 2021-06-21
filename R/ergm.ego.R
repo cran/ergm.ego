@@ -1,35 +1,47 @@
-#  File R/ergm.ego.R in package ergm.ego, part of the Statnet suite
-#  of packages for network analysis, https://statnet.org .
+#  File R/ergm.ego.R in package ergm.ego, part of the
+#  Statnet suite of packages for network analysis, https://statnet.org .
 #
 #  This software is distributed under the GPL-3 license.  It is free,
 #  open source, and has the attribution requirements (GPL Section 7) at
-#  https://statnet.org/attribution
+#  https://statnet.org/attribution .
 #
-#  Copyright 2015-2020 Statnet Commons
-#######################################################################
+#  Copyright 2015-2021 Statnet Commons
+################################################################################
 
 
 #' Inference for Exponential-Family Random Graph Models based on Egocentrically
 #' Sampled Data
 #' 
 #' A wrapper around the \code{\link[ergm]{ergm}} to fit an ERGM to an
-#' \code{\link{egodata}} object.
+#' \code{\link{egor}}.
 #' 
 #' 
-#' @param formula An \code{\link{formula}} object, of the form \code{e ~ <model
-#' terms>}, where \code{e} is a \code{\link{egodata}} object. See
-#' \code{\link[ergm]{ergm}} for details and examples.
+#' @param formula An \code{\link{formula}} object, of the form \code{e
+#'   ~ <model terms>}, where \code{e} is a \code{\link{egor}}
+#'   object. See \code{\link[ergm]{ergm}} for details and examples.
 #' 
 #' For a list of currently implemented egocentric terms for the RHS, see
 #' \code{\link{ergm.ego-terms}}.
-#' @param popsize The size \eqn{|N|} of the finite population network from
-#' which the egocentric sample was taken; only affects the shift in the
-#' coefficients of the terms modeling the overall propensity to have ties.
-#' Setting it to 1 (the default) essentially uses the \eqn{-\log |N'|} offset
-#' on the edges term.
+#' @param constraints A one-sided formula \code{\link{formula}} giving
+#'   the sample space constraints. See \code{\link[ergm]{ergm}} for
+#'   details and examples.
+#'
+#' @param popsize The size \eqn{|N|} of the finite population network
+#'   from which the egocentric sample was taken; only affects the
+#'   shift in the coefficients of the terms modeling the overall
+#'   propensity to have ties.  Setting it to 1 (the default)
+#'   essentially uses the \eqn{-\log |N'|} offset on the edges
+#'   term. Passing 0 disables network size adjustment and uses the
+#'   egocentric sample size; passing [`I(N)`][I] uses the specified
+#'   size `N` (though can be overridden by the `ppop`
+#'   [control.ergm.ego()] option) and disables network size
+#'   adjustment.
+#'
 #' @param offset.coef A vector of coefficients for the offset terms.
 #' @param na.action How to handle missing actor attributes in egos or alters,
-#' when the terms need them.
+#' when the terms need them for  models that scale.
+#' @param na.rm How to handle missing actor attributes in egos or alters,
+#' when the terms need them for models that do not scale.
 #' @param \dots Additional arguments passed to \code{\link[ergm]{ergm}}.
 #' @param control A \code{\link{control.ergm.ego}} control list.
 #' @param do.fit Whether to actually call \code{\link[ergm]{ergm}}
@@ -40,7 +52,7 @@
 #' sufficient statistics}
 #' \item{"m"}{Estimate of the sufficient
 #' statistics}
-#' \item{"egodata"}{The egodata object passed}
+#' \item{"egor"}{The [`egor`] object passed}
 #' \item{"popsize"}{Population network size used}
 #' \item{"ppopsize"}{Pseudopopulation size used, see \code{\link{control.ergm.ego}}}
 #' \item{"coef"}{The
@@ -57,22 +69,20 @@
 #' @author Pavel N. Krivitsky
 #' @references
 #' 
-#' Pavel N. Krivitsky and Martina Morris. Inference for Social Network Models
-#' from Egocentrically-Sampled Data, with Application to Understanding
-#' Persistent Racial Disparities in HIV Prevalence in the US. Thechnical
-#' Report. National Institute for Applied Statistics Research Australia,
-#' University of Wollongong, 2015(05-15).
-#' \url{http://niasra.uow.edu.au/publications/UOW190187.html}
+#' * Pavel N. Krivitsky and Martina Morris (2017). "Inference for social network models from egocentrically sampled data, with application to understanding persistent racial disparities in HIV prevalence in the US." *Annals of Applied Statistics*, 11(1): 427–455. \doi{10.1214/16-AOAS1010}
+#'
+#' * Pavel N. Krivitsky, Martina Morris, and Michał Bojanowski (2019). "Inference for Exponential-Family Random Graph Models from Egocentrically-Sampled Data with Alter–Alter Relations." NIASRA Working Paper 08-19. \url{https://www.uow.edu.au/niasra/publications/}
+#'
 #' @keywords models
 #' @examples
-#' 
+#' \donttest{
 #' data(faux.mesa.high)
-#' fmh.ego <- as.egodata(faux.mesa.high)
+#' fmh.ego <- as.egor(faux.mesa.high)
 #' 
 #' head(fmh.ego)
 #' 
 #' egofit <- ergm.ego(fmh.ego~edges+degree(0:3)+nodefactor("Race")+nodematch("Race")
-#'                          +nodefactor("Sex")+nodematch("Sex")+absdiff("Grade"), 
+#'                          +nodefactor("Sex")+nodematch("Sex")+absdiff("Grade")+gwesp(0,fix=TRUE), 
 #'                           popsize=network.size(faux.mesa.high))
 #' 
 #' # Run convergence diagnostics
@@ -80,39 +90,33 @@
 #' 
 #' # Estimates and standard errors
 #' summary(egofit)
-#' 
-#' # Note that we recover the ergm() parameters
-#' \dontrun{
-#' coef(ergm(faux.mesa.high~edges+degree(0:3)+nodefactor("Race")+nodematch("Race")
-#'                          +nodefactor("Sex")+nodematch("Sex")+absdiff("Grade"),
-#'           eval.loglik=FALSE))
 #' }
-#' rbind(c(0, -0.8407, 2.3393, 1.4686, 0.6323, 0.5287, -1.3603, -1.0454,
-#'         -2.4998, -0.7207, 0.833, -0.1823, 0.6357, -1.3513),
-#'       coef(egofit))
-#'
+#' 
 #' @import ergm stats
 #' @importFrom utils modifyList
 #' @export
-ergm.ego <- function(formula, popsize=1, offset.coef=NULL, ..., control=control.ergm.ego(), na.action=na.fail, do.fit=TRUE){
-  statnet.common::check.control.class("ergm.ego", "ergm.ego")
+ergm.ego <- function(formula, popsize=1, offset.coef=NULL, constraints=~.,..., control=control.ergm.ego(), na.action=na.fail, na.rm=FALSE, do.fit=TRUE){
+  statnet.common::check.control.class("ergm.ego","ergm.ego")
   
   stats.est <- control$stats.est
   stats.wt <- control$stats.wt
-  egodata <- eval_lhs.formula(formula)
+  egor <- eval_lhs.formula(formula)
 
-  sampsize <- dim(egodata)[1]
+  sampsize <- nrow(egor$ego)
   ppopsize <-
     if(is.network(control$ppopsize)) network.size(control$ppopsize)
     else if(is.data.frame(control$ppopsize)) nrow(control$ppopsize)
     else if(is.numeric(control$ppopsize)) control$ppopsize
     else switch(control$ppopsize,
-                auto = if(missing(popsize) || popsize==1) sampsize*control$ppopsize.mul else popsize*control$ppopsize.mul,  
+                auto = if(is(popsize, "AsIs")) popsize
+                else if(missing(popsize) || popsize %in% c(0,1)) sampsize*control$ppopsize.mul else popsize*control$ppopsize.mul,
                 samp = sampsize*control$ppopsize.mul,
                 pop = popsize*control$ppopsize.mul)
+
+  nsa <- !is(popsize, "AsIs") && popsize > 0
   
   if(ppopsize < sampsize && !is.data.frame(control$ppopsize)) warning("Using a smaller pseudopopulation size than sample size usually does not make sense.")
-  else if(ppopsize == sampsize && !is.null(egodata$egoWt) && var(egodata$egoWt)>sqrt(.Machine$double.eps))
+  else if(ppopsize == sampsize && var(weights(egor))>sqrt(.Machine$double.eps))
     warning("Using pseudopoulation size equal to sample size under weighted sampling: results may be highly biased. Recommend increasing popsize.mul control parameter.")
   
   message("Constructing pseudopopulation network.")
@@ -120,32 +124,33 @@ ergm.ego <- function(formula, popsize=1, offset.coef=NULL, ..., control=control.
     if(is.network(control$ppopsize)){  # If pseudopopulation network is given in popsize, use that.
       control$ppopsize
     }else if(is.data.frame(control$ppopsize)){ # If pseudopoluation composition is given in popsize, use that.
-      pegos <- control$ppopsize
-      pegos[[".pegoID"]] <- 1:nrow(pegos)
-      pdata <- egodata(pegos, data.frame(.pegoID=c()), egoIDcol = ".pegoID")
-      as.network.egodata(pdata, ppopsize)
+      template_network(control$ppopsize, ppopsize)
     }else{
-      as.network(egodata, ppopsize, scaling=control$ppop.wt)
+      template_network(egor, ppopsize, scaling=control$ppop.wt)
     }
 
   if(network.size(popnw)!=ppopsize){
-    message("Note: Constructed network has size ", network.size(popnw), ", different from requested ", ppopsize,". Estimation should not be meaningfully affected.")
+    if(nsa) message("Note: Constructed network has size ", network.size(popnw), ", different from requested ", ppopsize,". Estimation should not be meaningfully affected.")
+    else warning("Constructed network has size ", network.size(popnw), ", different from requested ", ppopsize,", with network size adjustment disabled; estimation may be affected.", immediate.=TRUE)
     ppopsize <- network.size(popnw)
   }
 
   w <- switch(stats.wt,
-              data=egodata$egoWt,
-              ppop=tabulate(popnw %v% "ego.ind", nbins=nrow(egodata))
+              data=weights(egor),
+              ppop=tabulate(popnw %v% "ego.ind", nbins=nrow(egor))
               )
 
   deoffset <- function(f)
     filter_rhs.formula(f, function(x)
     (if(is.call(x)) x[[1]] else x)!="offset")
   
-  # Get the sample h values.
-  stats <- try(summary(deoffset(formula),
-    individual=TRUE))
-  if(!inherits(stats,"try-error")){
+  # Try to get the sample h values.
+  if(stats.est != "survey") stats <- try(summary(deoffset(formula), individual=TRUE))
+
+  if(stats.est!="survey" && !inherits(stats,"try-error")){
+    ord <- attr(stats, "order")  
+    adj.update <- call("~",as.name("."),call("+", call("offset", call("netsize.adj", edges = +(1%in%ord), mutual = -(2%in%ord), transitiveties = -1/3*(3%in%ord))), as.name(".")))
+    
     # h is just a matrix, so this will do the sensible thing.
     tmp <- na.action(cbind(w,stats))
     w <- tmp[,1]
@@ -180,40 +185,47 @@ ergm.ego <- function(formula, popsize=1, offset.coef=NULL, ..., control=control.
                 asymptotic = .asymptotic.var(stats, w)/length(w)
                 )
   }else{
-    if(stats.est %in% c("naive","asymptotic"))
+    m <- summary(deoffset(formula), basis=egor, na.rm=na.rm, individual=FALSE, scaleto=ppopsize)
+    ord <- attr(m, "order")  
+    adj.update <- call("~",as.name("."),call("+", call("offset", call("netsize.adj", edges = +(1%in%ord), mutual = -(2%in%ord), transitiveties = -1/3*(3%in%ord))), as.name(".")))
+
+    if(0 %in% ord && stats.est %in% c("survey", "naive","asymptotic"))
       stop("Non-scaling statistic detected: use bootstrap or jackknife variance estimator.")
-    if(do.fit && popsize!=ppopsize)
+    if(0 %in% ord && do.fit && popsize!=ppopsize)
       warning("Non-scaling statistic detected when trying to fit a model: network-size invariant parametrization probably does not exist so pseudopopulation size should equal the population size.")
 
-    n <- nrow(egodata)
-    m <- summary(deoffset(formula), basis=egodata, individual=FALSE, scaleto=ppopsize)
-      
-    if(stats.est=="bootstrap"){
+    n <- nrow(egor)
+
+    if(stats.est=="survey"){
+      v <- vcov(m)
+      m <- setNames(as.vector(m), names(m))
+    }else if(stats.est=="bootstrap"){
       m.b <- t(replicate(control$boot.R,{
                            i <- sample.int(length(w),replace=TRUE)
-                           e <- egodata[i,]
+                           e <- egor$ego[i,]
                            summary(deoffset(formula), basis=e, individual=FALSE, scaleto=ppopsize)
                          }))
       m <- m - (colMeans(m.b)-m)
       
     }else if(stats.est=="jackknife"){
       m.j <- t(sapply(seq_len(n), function(i){
-                        e <- egodata[-i,]
+                        e <- egor$ego[-i,]
                         summary(deoffset(formula), basis=e, individual=FALSE, scaleto=ppopsize)
                       }))
       m <- n*m - (n-1)*colMeans(m.j)
     }
     
-    # TODO: Include finite-population correction here:
+    # TODO: Include finite-population correction for non-survey methods here:
     v <- switch(stats.est,
+                survey = v,
                 bootstrap = cov(m.b),
                 jackknife = (n-1)/n*crossprod(sweep(m.j,2,colMeans(m.j)))
                 )
   }
   
-  ergm.formula <- nonsimp_update.formula(formula,popnw~offset(netsize.adj)+.,from.new="popnw")
+  ergm.formula <- nonsimp_update.formula(formula,popnw~.,from.new="popnw")
 
-  ergm.names <- param_names(ergm_model(deoffset(ergm.formula)), offset=FALSE)
+  ergm.names <- param_names(ergm_model(ergm.formula), canonical=TRUE, offset=FALSE)
   if(!setequal(ergm.names,names(m))){
     ergm.not.ts <- setdiff(ergm.names, names(m))
     ts.not.ergm <- setdiff(names(m), ergm.names)
@@ -223,12 +235,24 @@ ergm.ego <- function(formula, popsize=1, offset.coef=NULL, ..., control=control.
     stop("There appears to be a mismatch between estimated statistic and the sufficient statistic of the ERGM: ", errstr, " A common cause of this is that egos and alters do not have a consistent set of levels for one or more factors.")
   }
   
-  ergm.offset.coef <- c(-log(ppopsize/popsize),offset.coef)
-  out <- list(v=v, m=m, formula=formula, ergm.formula=ergm.formula, offset.coef=offset.coef, ergm.offset.coef=ergm.offset.coef, egodata=egodata, ppopsize=ppopsize, popsize=popsize)
+  if(nsa) ergm.formula <- nonsimp_update.formula(ergm.formula,adj.update)
+  ergm.offset.coef <- c(if(nsa) -log(ppopsize/popsize),offset.coef)
+
+  # If nominations were limited, represent the cap a degree bound.
+  constraints <- if(!control$ignore.max.alters && alter_design(egor)$max<Inf){
+    newterm <- as.formula(substitute(~bd(maxout=.max), eval(list(.max=alter_design(egor,"max")))))
+    if(constraints==~.)
+      newterm
+    else
+      append_rhs.formula(constraints, list_rhs.formula(newterm))
+  }else constraints
   
+  out <- list(v=v, m=m, formula=formula, ergm.formula=ergm.formula, offset.coef=offset.coef, ergm.offset.coef=ergm.offset.coef, egor=egor, ppopsize=ppopsize, popsize=popsize, constraints=constraints, netsize.adj=if(nsa) adj.update)
+
   if(do.fit){
 
-    ergm.fit <- ergm(ergm.formula, target.stats=m, offset.coef=ergm.offset.coef,..., eval.loglik=FALSE,control=control$ergm.control)
+    ergm.fit <- ergm(ergm.formula, target.stats=m, offset.coef=ergm.offset.coef, constraints=constraints, ..., eval.loglik=FALSE,control=control$ergm)
+    if(is.curved(ergm.fit)) warning("Theory of egocentric inference and particularly of variance calculation for curved ERGMs is not well understood; standard errors might not be reliable.")
 
     ## Workaround to keep mcmc.diagnostics from failing. Should be removed after fix is released.
     if(inherits(ergm.fit$sample,"mcmc.list")){
@@ -240,7 +264,7 @@ ergm.ego <- function(formula, popsize=1, offset.coef=NULL, ..., control=control.
     coef <- coef(ergm.fit)
 
     oi <- ergm.fit$etamap$offsettheta
-    dropped <- oi[!ergm_model(ergm.formula)$etamap$offsettheta]
+    dropped <- ergm.fit$drop != 0
     
     DtDe <- -ergm.fit$hessian[!oi,!oi,drop=FALSE]
 
@@ -252,8 +276,17 @@ ergm.ego <- function(formula, popsize=1, offset.coef=NULL, ..., control=control.
     vcov <- matrix(NA, length(coef), length(coef))
 
     iDtDe <- solve(DtDe[!novar,!novar,drop=FALSE])
-    vcov[!oi,!oi] <- iDtDe%*%v[!dropped,!dropped,drop=FALSE][!novar,!novar,drop=FALSE]%*%iDtDe
+
+    # Augment the statistics covariance matrix with 0 rows and columns
+    # for offsets, then pre- and post-multiply it by the derivative of
+    # theta with to eta.
+    vdropped <- dropped[!oi | dropped]
+    vaug <- matrix(0, length(ergm.fit$etamap$offsetmap), length(ergm.fit$etamap$offsetmap))
+    vaug[!ergm.fit$etamap$offsetmap, !ergm.fit$etamap$offsetmap] <- v[!vdropped,!vdropped]
+    vaug <- ergm.etagradmult(coef, t(ergm.etagradmult(coef, vaug, ergm.fit$etamap)), ergm.fit$etamap)
     
+    vcov[!oi,!oi] <- iDtDe%*%vaug[!oi,!oi,drop=FALSE]%*%iDtDe
+
     rownames(vcov) <- colnames(vcov) <- names(coef)
 
     out <- c(out, list(covar=vcov, ergm.covar=ergm.fit$covar, DtDe=DtDe))

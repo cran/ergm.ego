@@ -9,9 +9,10 @@ control.ergm.ego(
   ppopsize.mul = 1,
   ppop.wt = c("round", "sample"),
   stats.wt = c("data", "ppop"),
-  stats.est = c("asymptotic", "bootstrap", "jackknife", "naive"),
+  stats.est = c("survey", "asymptotic", "bootstrap", "jackknife", "naive"),
   boot.R = 10000,
-  ergm.control = control.ergm(),
+  ignore.max.alters = FALSE,
+  ergm = control.ergm(),
   ...
 )
 }
@@ -66,6 +67,7 @@ pseudopopulation network.} }}
 
 \item{stats.est, boot.R}{Method to be used to estimate the ERGM's sufficient
 statistics and their variance: \describe{
+\item{"survey"}{Variance estimator returned by \code{\link[survey:surveysummary]{survey::svymean()}}, appropriate to the design of the dataset.}
 \item{"asymptotic"}{Delta method, as derived by Krivitsky and
 Morris (2015), assuming the ego weights are sampled alongside the
 egos.}\item{ (default)}{Delta method, as derived by Krivitsky and Morris
@@ -76,7 +78,10 @@ resampling egos, using \code{R} replications.}
 \item{"naive"}{"Naive" estimator, assuming that weights are
 fixed.} }}
 
-\item{ergm.control}{Control parameters for the \code{\link[ergm]{ergm}} call
+\item{ignore.max.alters}{if \code{TRUE}, ignores any constraints on the
+number of nominations.}
+
+\item{ergm}{Control parameters for the \code{\link[ergm]{ergm}} call
 to fit the model, constructed by \code{\link[ergm]{control.ergm}}.}
 
 \item{\dots}{Not used at this time.}
@@ -89,12 +94,13 @@ Constructs and checks the list of control parameters for estimation by
 \code{\link{ergm.ego}}.
 }
 \references{
-Pavel N. Krivitsky and Martina Morris. Inference for Social Network Models
-from Egocentrically-Sampled Data, with Application to Understanding
-Persistent Racial Disparities in HIV Prevalence in the US. Thechnical
-Report. National Institute for Applied Statistics Research Australia,
-University of Wollongong, 2015(05-15).
-\url{http://niasra.uow.edu.au/publications/UOW190187.html}
+\itemize{
+\item Pavel N. Krivitsky and Martina Morris (2017). "Inference for social network models from egocentrically sampled data, with application to understanding persistent racial disparities in HIV prevalence in the US." \emph{Annals of Applied Statistics}, 11(1): 427–455. \doi{10.1214/16-AOAS1010}
+\item Pavel N. Krivitsky, Martina Morris, and Michał Bojanowski (2019). "Inference for Exponential-Family Random Graph Models from Egocentrically-Sampled Data with Alter–Alter Relations." NIASRA Working Paper 08-19. \url{https://www.uow.edu.au/niasra/publications/}
+\item Pavel N. Krivitsky, Mark S. Handcock, and Martina Morris (2011). "Adjusting for
+Network Size and Composition Effects in Exponential-Family Random Graph
+Models." \emph{Statistical Methodology}, 8(4): 319–339. \doi{10.1016/j.stamet.2011.01.005}
+}
 }
 \seealso{
 control.ergm

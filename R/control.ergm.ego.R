@@ -1,12 +1,12 @@
-#  File R/control.ergm.ego.R in package ergm.ego, part of the Statnet suite
-#  of packages for network analysis, https://statnet.org .
+#  File R/control.ergm.ego.R in package ergm.ego, part of the
+#  Statnet suite of packages for network analysis, https://statnet.org .
 #
 #  This software is distributed under the GPL-3 license.  It is free,
 #  open source, and has the attribution requirements (GPL Section 7) at
-#  https://statnet.org/attribution
+#  https://statnet.org/attribution .
 #
-#  Copyright 2015-2020 Statnet Commons
-#######################################################################
+#  Copyright 2015-2021 Statnet Commons
+################################################################################
 
 
 #' Control parameters for \code{\link{ergm.ego}}.
@@ -63,6 +63,7 @@
 #' pseudopopulation network.} }
 #' @param stats.est,boot.R Method to be used to estimate the ERGM's sufficient
 #' statistics and their variance: \describe{
+#' \item{"survey"}{Variance estimator returned by [survey::svymean()], appropriate to the design of the dataset.}
 #' \item{"asymptotic"}{Delta method, as derived by Krivitsky and
 #' Morris (2015), assuming the ego weights are sampled alongside the
 #' egos.}\item{ (default)}{Delta method, as derived by Krivitsky and Morris
@@ -72,7 +73,11 @@
 #' \item{"jackknife"}{Jackknife with bias correction.}
 #' \item{"naive"}{"Naive" estimator, assuming that weights are
 #' fixed.} }
-#' @param ergm.control Control parameters for the \code{\link[ergm]{ergm}} call
+#' 
+#' @param ignore.max.alters if `TRUE`, ignores any constraints on the
+#'   number of nominations.
+#' 
+#' @param ergm Control parameters for the \code{\link[ergm]{ergm}} call
 #' to fit the model, constructed by \code{\link[ergm]{control.ergm}}.
 #' @param \dots Not used at this time.
 #' @return A list with arguments as components.
@@ -80,12 +85,14 @@
 #' @seealso control.ergm
 #' @references
 #' 
-#' Pavel N. Krivitsky and Martina Morris. Inference for Social Network Models
-#' from Egocentrically-Sampled Data, with Application to Understanding
-#' Persistent Racial Disparities in HIV Prevalence in the US. Thechnical
-#' Report. National Institute for Applied Statistics Research Australia,
-#' University of Wollongong, 2015(05-15).
-#' \url{http://niasra.uow.edu.au/publications/UOW190187.html}
+#' * Pavel N. Krivitsky and Martina Morris (2017). "Inference for social network models from egocentrically sampled data, with application to understanding persistent racial disparities in HIV prevalence in the US." *Annals of Applied Statistics*, 11(1): 427–455. \doi{10.1214/16-AOAS1010}
+#'
+#' * Pavel N. Krivitsky, Martina Morris, and Michał Bojanowski (2019). "Inference for Exponential-Family Random Graph Models from Egocentrically-Sampled Data with Alter–Alter Relations." NIASRA Working Paper 08-19. \url{https://www.uow.edu.au/niasra/publications/}
+#'
+#' * Pavel N. Krivitsky, Mark S. Handcock, and Martina Morris (2011). "Adjusting for
+#' Network Size and Composition Effects in Exponential-Family Random Graph
+#' Models." \emph{Statistical Methodology}, 8(4): 319–339. \doi{10.1016/j.stamet.2011.01.005}
+#'
 #' @keywords models
 #' @export
 control.ergm.ego <- function(
@@ -93,10 +100,13 @@ control.ergm.ego <- function(
   ppopsize.mul = 1,
   ppop.wt = c("round","sample"),                                      
   stats.wt = c("data","ppop"),
-  stats.est = c("asymptotic", "bootstrap", "jackknife", "naive"),
+  stats.est = c("survey","asymptotic", "bootstrap", "jackknife", "naive"),
   boot.R = 10000,
-  ergm.control = control.ergm(),
+  ignore.max.alters = FALSE,
+  ergm = control.ergm(),
   ...){
+  old.controls <- list(ergm.control="ergm")
+
   match.arg.pars <- c("stats.est", "ppop.wt", "stats.wt", if(is.character(ppopsize)) "ppopsize")
 
   control<-list()
@@ -104,7 +114,15 @@ control.ergm.ego <- function(
   formal.args[["..."]]<-NULL
   for(arg in names(formal.args))
     control[arg]<-list(get(arg))
-  if(length(list(...))) stop("Unrecognized control parameter: ",arg,".")
+
+  for(arg in names(list(...))){
+    if(!is.null(old.controls[[arg]])){
+      warning("Passing ",arg," to control.ergm.ego(...) is deprecated and may be removed in a future version. Specify it as control.ergm.ego(",old.controls[[arg]],"=...) instead.")
+      control[old.controls[[arg]]]<-list(list(...)[[arg]])
+    }else{
+      stop("Unrecognized control parameter: ",arg,".")
+    }
+  }
 
   for(arg in match.arg.pars)
     control[arg]<-list(match.arg(control[[arg]][1],eval(formal.args[[arg]])))

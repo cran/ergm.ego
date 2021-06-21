@@ -1,12 +1,12 @@
-%  File inst/NEWS.Rd in package ergm.ego, part of the Statnet suite
-%  of packages for network analysis, https://statnet.org .
+%  File inst/NEWS.Rd in package ergm.ego, part of the
+%  Statnet suite of packages for network analysis, https://statnet.org .
 %
 %  This software is distributed under the GPL-3 license.  It is free,
 %  open source, and has the attribution requirements (GPL Section 7) at
-%  https://statnet.org/attribution
+%  https://statnet.org/attribution .
 %
-%  Copyright 2015-2020 Statnet Commons
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  Copyright 2015-2021 Statnet Commons
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \name{NEWS}
 \title{NEWS file for the \code{\link[=ergm.ego-package]{ergm.ego}} package}
 \encoding{UTF-8}
@@ -63,6 +63,73 @@
   % }
 
 %% }
+
+
+\section{Changes in version 0.9.0}{
+
+  \subsection{NEW FEATURES}{
+    \itemize{
+      \item{
+        This package now uses the \pkg{\link[egor:egor-package]{egor}} package's \code{egor} class for data storage and manipulation. A converter \code{\link{as.egor.egodata}()} is provided.
+      }
+      \item{
+        \code{\link{ergm.ego}()} now supports complex survey designs set on \code{\link[egor:egor-object]{egor}} objects.
+      }
+      \item{
+        \code{\link{ergm.ego}()} and the summary methods can now fit triadic effects (\code{gwesp}, \code{esp}, \code{transitiveties}) when alter-alter ties are available.
+      }
+      \item{
+        \code{\link{ergm.ego}()} can now handle missing alter attributes in some circumstances, and provided they are missing completely at random.
+      }
+      \item{
+        A number of new egostats have been implemented, including \code{gwdegree}
+      }
+      \item{
+        A number of improvements to the goodness-of-fit routines.
+      }
+      \item{
+        \code{\link{snctrl}()} UI for specifying control parameters is supported.
+      }
+      \item{
+        Curved ERGMs are now supported; this capability should be considered experimental, as uncertainty estimates have not been rigorously derived.
+      }
+      \item{
+        For nonscaling statistics such as \code{\link{meandeg}}, standard errors can now be computed.
+      }
+      \item{
+        Network size adjustment can now be disabled during fitting.
+      }
+    }
+  }
+
+
+  \subsection{BUG FIXES}{
+    \itemize{
+      \item{
+        Various fixes to \code{\link[=degreedist.egor]{degreedist}()}, \code{\link[=mixingmatrix.egor]{mixingmatrix}()}, and other methods.
+      }
+    }
+  }
+
+
+  \subsection{OTHER USER-VISIBLE CHANGES}{
+    \itemize{
+      \item{
+        The function that was previously \code{as.network.egodata()} for constructing an empty network having the same composition as the egocentric dataset has been superseded by \code{\link{template_network}()}.
+      }
+      \item{
+        Manually specified pseudo-population is handled better.
+      }
+      \item{
+        \code{\link[=degreedist.egor]{degreedist}()} method for egocentric data now defauts to not making plots.
+      }
+      \item{
+        \code{\link[=mixingmatrix.egor]{mixingmatrix}()} method for egocentric data now returns a \code{\link{table}}.
+      }
+    }
+  }
+}
+
 
 \section{Changes in version 0.6.0}{
 

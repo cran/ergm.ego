@@ -1,12 +1,12 @@
-#  File R/simulate.ergm.ego.R in package ergm.ego, part of the Statnet suite
-#  of packages for network analysis, https://statnet.org .
+#  File R/simulate.ergm.ego.R in package ergm.ego, part of the
+#  Statnet suite of packages for network analysis, https://statnet.org .
 #
 #  This software is distributed under the GPL-3 license.  It is free,
 #  open source, and has the attribution requirements (GPL Section 7) at
-#  https://statnet.org/attribution
+#  https://statnet.org/attribution .
 #
-#  Copyright 2015-2020 Statnet Commons
-#######################################################################
+#  Copyright 2015-2021 Statnet Commons
+################################################################################
 
 
 #' Simulate from a \code{\link{ergm.ego}} fit.
@@ -40,65 +40,67 @@
 #' @author Pavel N. Krivitsky
 #' @seealso \code{\link[ergm]{simulate.formula}},
 #' \code{\link[ergm]{simulate.ergm}}
-#' @references Pavel N. Krivitsky and Martina Morris. Inference for Social
-#' Network Models from Egocentrically-Sampled Data, with Application to
-#' Understanding Persistent Racial Disparities in HIV Prevalence in the US.
-#' Thechnical Report. National Institute for Applied Statistics Research
-#' Australia, University of Wollongong, 2015(05-15).
-#' \doi{10.1214/16-AOAS1010}
+#' @references
+#'
+#' * Pavel N. Krivitsky and Martina Morris (2017). "Inference for social network models from egocentrically sampled data, with application to understanding persistent racial disparities in HIV prevalence in the US." *Annals of Applied Statistics*, 11(1): 427–455. \doi{10.1214/16-AOAS1010}
+#'
+#' * Pavel N. Krivitsky, Martina Morris, and Michał Bojanowski (2019). "Inference for Exponential-Family Random Graph Models from Egocentrically-Sampled Data with Alter–Alter Relations." NIASRA Working Paper 08-19. \url{https://www.uow.edu.au/niasra/publications/}
 #' 
-#' Pavel N. Krivitsky, Mark S. Handcock, and Martina Morris. Adjusting for
+#' * Pavel N. Krivitsky, Mark S. Handcock, and Martina Morris (2011). "Adjusting for
 #' Network Size and Composition Effects in Exponential-Family Random Graph
-#' Models. \emph{Statistical Methodology}, 2011, 8(4), 319-339.
-#' \doi{10.1016/j.stamet.2011.01.005}
+#' Models." \emph{Statistical Methodology}, 8(4): 319–339. \doi{10.1016/j.stamet.2011.01.005}
+#'
 #' @keywords models
 #' @examples
 #' 
 #' data(faux.mesa.high)
-#' fmh.ego <- as.egodata(faux.mesa.high)
-#' egofit <- ergm.ego(fmh.ego~edges+degree(0:3)+nodefactor("Race")+nodematch("Race")
-#'                +nodefactor("Sex")+nodematch("Sex")+absdiff("Grade"), 
-#'                popsize=network.size(faux.mesa.high))
-#' colMeans(egosim <- simulate(egofit, popsize=300,nsim=50,
+#' fmh.ego <- as.egor(faux.mesa.high)
+#' data(fmhfit)
+#' colMeans(egosim <- simulate(fmhfit, popsize=300,nsim=50,
 #'                        output="stats", control=control.simulate.ergm.ego(
-#'                        simulate.control=control.simulate.formula(MCMC.burnin=2e6))))
+#'                        simulate=control.simulate.formula(MCMC.burnin=2e6))))
 #' colMeans(egosim)/attr(egosim,"ppopsize")*network.size(faux.mesa.high)
 #' summary(faux.mesa.high~edges+degree(0:3)+nodefactor("Race")+nodematch("Race")
 #'            +nodefactor("Sex")+nodematch("Sex")+absdiff("Grade"))
 #'
 #' @importFrom stats simulate
 #' @export
-simulate.ergm.ego <- function(object, nsim = 1, seed = NULL, constraints=object$constraints, popsize=if(object$popsize==1) object$ppopsize else object$popsize, control=control.simulate.ergm.ego(), output=c("network","stats","edgelist","pending_update_network", "ergm_state"), ..., verbose=FALSE){
+simulate.ergm.ego <- function(object, nsim = 1, seed = NULL, constraints=object$constraints, popsize=if(object$popsize==1 || object$popsize==0 || is(object$popsize, "AsIs")) object$ppopsize else object$popsize, control=control.simulate.ergm.ego(), output=c("network","stats","edgelist","pending_update_network", "ergm_state"), ..., verbose=FALSE){
   statnet.common::check.control.class("simulate.ergm.ego", "simulate.ergm.ego")
   output <- match.arg(output)
+
+  nsa <- !is.null(object$netsize.adj)
   
-  egodata <- object$egodata
   if(is.data.frame(popsize)){ # If pseudopoluation composition is given in popsize, use that.
-    pegos <- popsize
-    pegos[[".pegoID"]] <- 1:nrow(pegos)
-    pdata <- egodata(pegos, data.frame(.pegoID=c()), egoIDcol = ".pegoID")
+    popnw <- template_network(popsize, nrow(popsize))
     popsize <- nrow(popsize)
-    popnw <- as.network.egodata(pdata, popsize)
   }else{
     popnw <-
       if(popsize == object$ppopsize) object$newnetwork
-      else as.network(egodata, popsize, scaling=control$ppop.wt)
+      else template_network(object$egor, popsize, scaling=control$ppop.wt)
   }
 
+  if(!nsa && network.size(popnw)!=object$ppopsize) warning("Simulation network size ", network.size(popnw), " different from fitted ", object$ppopsize,", with network size adjustment disabled. Simulation may not be meaningful.", immediate.=TRUE)
+
   ppopsize <- if(network.size(popnw)!=popsize){
-      message("Note: Constructed network has size ", network.size(popnw), " different from requested ", popsize,". Simulated statistics may need to be rescaled.")
+    message("Note: Constructed network has size ", network.size(popnw), " different from requested ", popsize,". Simulated statistics may need to be rescaled.")
     network.size(popnw)
   }else popsize
 
   san.stats <-
     if(length(object$target.stats)>nparam(object, offset=FALSE)) object$target.stats[!object$etamap$offsettheta]
     else object$target.stats
-  if(popsize != object$ppopsize) popnw <- san(object$formula, target.stats = san.stats/object$ppopsize*ppopsize,verbose=verbose, constraints=constraints, basis=popnw, control=control$SAN.control, ..., output=if(utils::packageVersion("ergm")>="4") "ergm_state" else "pending_update_network")
-  ergm.formula <- nonsimp_update.formula(object$formula,.~offset(netsize.adj)+.)
+  # TODO: Make it work with ergm_state output.
+  if(popsize != object$ppopsize) popnw <- san(object$formula, target.stats = san.stats/object$ppopsize*ppopsize,verbose=verbose, constraints=constraints, basis=popnw, control=control$SAN, ..., output="network")
 
-  out <- simulate(ergm.formula, nsim=nsim, seed=seed, verbose=verbose, coef=c(netsize.adj=-log(ppopsize/object$popsize),object$coef[-1]), constraints=constraints, control=control$simulate.control, basis=popnw, ..., output=output)
+  ergm.formula <- if(nsa) nonsimp_update.formula(object$formula,object$netsize.adj) else object$formula
+
+  out <- simulate(ergm.formula, nsim=nsim, seed=seed, verbose=verbose,
+                  coef=c(netsize.adj=if(nsa) -log(ppopsize/object$popsize),
+                         coef(object)[if(nsa) -1 else TRUE]),
+                  constraints=constraints, control=control$simulate, basis=popnw, ..., output=output)
   if(is.matrix(out)){
-    out <- out[,-1,drop=FALSE]
+    out <- out[,if(nsa) -1 else TRUE, drop=FALSE]
     attr(out, "ppopsize") <- ppopsize
   }
   out

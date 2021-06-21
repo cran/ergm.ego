@@ -12,8 +12,10 @@
 \alias{ergm.ego_attr_levels.AsIs}
 \alias{ergm.ego_attr_levels.character}
 \alias{ergm.ego_attr_levels.NULL}
+\alias{ergm.ego_attr_levels.matrix}
 \alias{ergm.ego_attr_levels.function}
 \alias{ergm.ego_attr_levels.formula}
+\alias{COLLAPSE_SMALLEST}
 \title{Helper functions for specifying nodal attribute levels}
 \usage{
 ergm.ego_get_vattr(
@@ -48,21 +50,25 @@ ergm.ego_get_vattr(
   ...
 )
 
-ergm.ego_attr_levels(object, attr, egodata, levels = sort(unique(attr)), ...)
+ergm.ego_attr_levels(object, attr, egor, levels = sort(unique(attr)), ...)
 
-\method{ergm.ego_attr_levels}{numeric}(object, attr, egodata, levels = sort(unique(attr)), ...)
+\method{ergm.ego_attr_levels}{numeric}(object, attr, egor, levels = sort(unique(attr)), ...)
 
-\method{ergm.ego_attr_levels}{logical}(object, attr, egodata, levels = sort(unique(attr)), ...)
+\method{ergm.ego_attr_levels}{logical}(object, attr, egor, levels = sort(unique(attr)), ...)
 
-\method{ergm.ego_attr_levels}{AsIs}(object, attr, egodata, levels = sort(unique(attr)), ...)
+\method{ergm.ego_attr_levels}{AsIs}(object, attr, egor, levels = sort(unique(attr)), ...)
 
-\method{ergm.ego_attr_levels}{character}(object, attr, egodata, levels = sort(unique(attr)), ...)
+\method{ergm.ego_attr_levels}{character}(object, attr, egor, levels = sort(unique(attr)), ...)
 
-\method{ergm.ego_attr_levels}{`NULL`}(object, attr, egodata, levels = sort(unique(attr)), ...)
+\method{ergm.ego_attr_levels}{`NULL`}(object, attr, egor, levels = sort(unique(attr)), ...)
 
-\method{ergm.ego_attr_levels}{`function`}(object, attr, egodata, levels = sort(unique(attr)), ...)
+\method{ergm.ego_attr_levels}{matrix}(object, attr, egor, levels = sort(unique(attr)), ...)
 
-\method{ergm.ego_attr_levels}{formula}(object, attr, egodata, levels = sort(unique(attr)), ...)
+\method{ergm.ego_attr_levels}{`function`}(object, attr, egor, levels = sort(unique(attr)), ...)
+
+\method{ergm.ego_attr_levels}{formula}(object, attr, egor, levels = sort(unique(attr)), ...)
+
+COLLAPSE_SMALLEST(object, n, into)
 }
 \arguments{
 \item{object}{An argument specifying the nodal attribute to select
@@ -82,10 +88,12 @@ the formula's environment.}
 \item{attr}{A vector of length equal to the number of nodes,
 specifying the attribute vector.}
 
-\item{egodata}{An \code{\link{egodata}} object.}
+\item{egor}{An \code{\link{egor}} object.}
 
 \item{levels}{Starting set of levels to use; defaults to the sorted
 list of unique attributes.}
+
+\item{n, into}{see \code{\link[ergm:nodal_attributes]{ergm::COLLAPSE_SMALLEST()}}.}
 }
 \value{
 \code{ergm.ego_get_vattr} returns a vector of length equal to the number of nodes giving the
@@ -150,16 +158,21 @@ beconverted to character).}
 
 }
 }
+\section{Functions}{
+\itemize{
+\item \code{COLLAPSE_SMALLEST}: A version of \code{\link[ergm:nodal_attributes]{ergm::COLLAPSE_SMALLEST()}} that can handle both \code{\link{network}} and \code{\link{egodata}} objects.
+}}
+
 \examples{
 data(florentine)
-flomego <- as.egodata(flomarriage)
-ergm.ego_get_vattr("priorates", flomego$egos)
-ergm.ego_get_vattr(~priorates, flomego$alters)
-ergm.ego_get_vattr(c("wealth","priorates"), flomego$egos)
-ergm.ego_get_vattr(~priorates>30, flomego$alters)
-(a <- ergm.ego_get_vattr(~cut(priorates,c(-Inf,0,20,40,60,Inf),label=FALSE)-1, flomego$egos))
-ergm.ego_attr_levels(NULL, a, flomego$egos)
-ergm.ego_attr_levels(-1, a, flomego$egos)
-ergm.ego_attr_levels(1:2, a, flomego$egos)
-ergm.ego_attr_levels(I(1:2), a, flomego$egos)
+flomego <- as.egor(flomarriage)
+ergm.ego_get_vattr("priorates", flomego)
+ergm.ego_get_vattr(~priorates, flomego)
+ergm.ego_get_vattr(c("wealth","priorates"), flomego)
+ergm.ego_get_vattr(~priorates>30, flomego)
+(a <- ergm.ego_get_vattr(~cut(priorates,c(-Inf,0,20,40,60,Inf),label=FALSE)-1, flomego))
+ergm.ego_attr_levels(NULL, a, flomego)
+ergm.ego_attr_levels(-1, a, flomego)
+ergm.ego_attr_levels(1:2, a, flomego)
+ergm.ego_attr_levels(I(1:2), a, flomego)
 }

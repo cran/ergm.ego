@@ -2,24 +2,28 @@
 % Please edit documentation in R/gof.ergm.ego.R
 \name{gof.ergm.ego}
 \alias{gof.ergm.ego}
+\alias{plot.gof.ergm.ego}
 \title{Conduct Goodness-of-Fit Diagnostics on a Exponential Family Random Graph
 Model fit to Egocentrically Sampled Data}
 \usage{
 \method{gof}{ergm.ego}(
   object,
   ...,
-  GOF = c("model", "degree"),
+  GOF = c("model", "degree", "espartners"),
   control = control.gof.ergm(),
   verbose = FALSE
 )
+
+\method{plot}{gof.ergm.ego}(x, ..., ego.conf.level = 0.95)
 }
 \arguments{
 \item{object}{An \code{\link{ergm.ego}} fit.}
 
-\item{\dots}{Additional arguments, currently unused.}
+\item{...}{Additional arguments. Unused by \code{\link[=gof.ergm.ego]{gof.ergm.ego()}}, passed to
+\code{\link[ergm:gof]{ergm::plot.gof()}} by \code{\link[=plot.gof.ergm.ego]{plot.gof.ergm.ego()}}}
 
 \item{GOF}{A string specifying the statistics whose goodness of fit is to be
-evaluated. Currently, only \dQuote{degree} and \dQuote{model} are
+evaluated. Currently, only \dQuote{degree}, \dQuote{espartners} and \dQuote{model} are
 implemented; see \code{\link[ergm]{gof}} documentation for details.}
 
 \item{control}{A list to control parameters, constructed using
@@ -28,18 +32,24 @@ have different defaults).}
 
 \item{verbose}{Provide verbose information on the progress of the
 simulation.}
+
+\item{x}{an object returned by \code{\link[=gof.ergm.ego]{gof.ergm.ego()}}.}
+
+\item{ego.conf.level}{confidence level for the observed statistic estimates as well.}
 }
 \value{
-An object of class \code{\link[ergm:gof]{gofobject}}.
+An object of class \code{\link{gof.ergm.ego}}, inheriting from \code{\link[ergm:gof.ergm]{gof.ergm}}.
 }
 \description{
 \code{\link{gof.ergm.ego}} implements the \code{\link[ergm]{gof}} method for
 \code{\link{ergm.ego}} fit objects.
+
+An enhanced plotting method is also provided, giving uncertainty bars for the observed statistics as well.
 }
 \examples{
-
+\donttest{
 data(faux.mesa.high)
-fmh.ego <- as.egodata(faux.mesa.high)
+fmh.ego <- as.egor(faux.mesa.high)
 
 head(fmh.ego)
 
@@ -50,10 +60,15 @@ egofit <- ergm.ego(fmh.ego~edges+degree(0:3)+nodefactor("Race")+nodematch("Race"
 # Check whether the model "converged":
 (modelgof <- gof(egofit, GOF="model"))
 plot(modelgof)
-\donttest{
+
 # Check whether the model reconstructs the degree distribution:
 (deggof <- gof(egofit, GOF="degree"))
 plot(deggof)
+}
+}
+\references{
+\itemize{
+\item David R. Hunter, Steven M. Goodreau, and Mark S. Handcock (2008). "Goodness of Fit of Social Network Models." \emph{Journal of the American Statistical Association}, 103:481: 248–258. \doi{10.1198/016214507000000446}
 }
 }
 \seealso{

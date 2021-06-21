@@ -11,35 +11,18 @@
 \alias{terms-ergm}
 \alias{terms.ergm}
 \alias{EgoStat}
-\alias{EgoStat.offset}
-\alias{EgoStat.edges}
-\alias{EgoStat.nodecov}
-\alias{EgoStat.nodefactor}
-\alias{EgoStat.nodematch}
-\alias{EgoStat.nodemix}
-\alias{EgoStat.absdiff}
-\alias{EgoStat.degree}
-\alias{EgoStat.degrange}
-\alias{EgoStat.concurrent}
-\alias{EgoStat.concurrentties}
-\alias{EgoStat.degree1.5}
-\alias{EgoStat.mm}
-\alias{EgoStat.mean.age}
-\alias{EgoStat.meandeg}
-\alias{netsize.adj}
-\alias{InitErgmTerm.netsize.adj}
 \title{\code{\link[ergm]{ergm}} Terms Implemented for
-\code{\link[=egodata.object]{egodata}}}
+\code{\link{egor}}}
 \description{
 This page describes the \code{\link[ergm]{ergm}} terms (and hence network
 statistics) for which inference based on egocentrically sampled data is
 implemented in \code{ergm.ego} package. Other packages may add their own
-terms.
+terms. These functions should not be called by the end-user.
 }
 \details{
 The current recommendation for any package implementing additional
 egocentric calculator terms is to create a help file with a name or alias
-\code{ergm.egodata-terms}, so that \code{help("ergm.egodata-terms")} will
+\code{ergm.ego-terms}, so that \code{help("ergm.ego-terms")} will
 list egocentric ERGM terms available from all loaded packages.
 }
 \section{Currently implemented egocentric statistics}{
@@ -48,18 +31,44 @@ please see their respective package's \code{ergm-terms} help for meaning and
 parameters. The simplest way to do this is usually via \code{? TERM}.
 
 \describe{ \item{Special-purpose terms:}{ \describe{
-\item{netsize.adj}{A special-purpose term equivalent to
-\code{\link[ergm]{edges}}, to house the network-size adjustment offset. This
-term is added to the model automatically and should not be used in the model
-formula directly.  } } }
+\item{netsize.adj(edges=+1, mutual=0, transitiveties=0,
+cyclicalties=0)}{A special-purpose term equivalent to a linear
+combination of \code{\link[ergm]{edges}},
+\code{\link[ergm]{mutual}}, \code{\link[ergm]{transitiveties}}, and
+\code{\link[ergm]{cyclicalties}}, to house the network-size
+adjustment offset. This term is added to the model automatically
+and should not be used in the model formula directly.  } } }
 
-\item{ergm:}{ \itemize{ \item \code{offset} \item \code{edges}
-\item \code{nodecov} \item \code{nodefactor} \item \code{nodematch}
-\item \code{nodemix} \item \code{absdiff} \item \code{degree} \item
-\code{degrange} \item \code{concurrent} \item \code{concurrentties}
-\item \code{degree1.5} \item \code{mm} \item \code{meandeg}*} }
+\item{ergm:}{
+\itemize{
+\item \code{offset}
+\item \code{edges}
+\item \code{nodecov}
+\item \code{nodefactor}
+\item \code{nodematch}
+\item \code{nodemix}
+\item \code{absdiff}
+\item \code{degree}
+\item \code{degrange}
+\item \code{concurrent}
+\item \code{concurrentties}
+\item \code{degree1.5}
+\item \code{transitiveties}
+\item \code{cyclicalties}
+\item \code{esp}
+\item \code{gwesp}
+\item \code{gwdegree}
+\item \code{mm}
+\item \code{meandeg}*
+}
+}
 
-\item{tergm:}{ \itemize{ \item \code{mean.age}* } } }
+\item{tergm:}{
+\itemize{
+\item \code{mean.age}*
+}
+}
+}
 
 Starred terms are \emph{nonscaling}, in that while they can be
 evaluated, some inferential results and standard error calculation
