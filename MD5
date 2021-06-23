@@ -1,4 +1,4 @@
-72c2c34ba3df0e3435049476d659aeb2 *DESCRIPTION
+f67647527b70137593641b8ef37c7d91 *DESCRIPTION
 65af9ea8007a49a5c10584f8736c64b8 *LICENSE
 63e8d1c9168856c3c68caf008c921bed *NAMESPACE
 b3e5db919de67bd1ea7b26bc5b8acecb *R/EgoStat.R
@@ -16,13 +16,13 @@ ba90476501f0fb07f88c2e265f894457 *R/fmhfit.R
 bbf3cd2cf1023bebd771d827b9d58b57 *R/reweight.egor.R
 320165331e8893ae65526383f24104f2 *R/simulate.ergm.ego.R
 3f09f0eed331e8faf9a1a6249f7a5ada *R/summary.ergm.ego.R
-51cae091eafcda5898100eba88e9e13f *R/summary.statistics.egor.R
+38cc5f4d4b3361f92c8535ad179a21b3 *R/summary.statistics.egor.R
 1a5b754a9738d458c0906df0cbcdd119 *R/zzz.R
-e7c9512e1bac4a7147013d841b277c66 *build/ergm.ego.pdf
-6b1188b96ee51a4282d3bfd88f5cbb29 *build/partial.rdb
+59aeeb13c40acc106305f5cc562b26ec *build/ergm.ego.pdf
+4cd1f449aba1cf53186274a88a110dcb *build/partial.rdb
 8b8cf94e5f1ffa71b28ef1007542e4a5 *data/fmhfit.rda
-cd8fed92d4a3e745f5996e59b5dde565 *inst/CITATION
-4bec2a5a5faedd51caf42e3c300e66bb *inst/NEWS.Rd
+80e68cb6e471e2f5c513fbe9c89770e4 *inst/CITATION
+8cbf1b607e6fdf2c6d8a2ce5b49126d1 *inst/NEWS.Rd
 b86cd1369f5bca92bccb280d7df0caf4 *man/EgoStat-internal.Rd
 f2e4690776b00bd93afa1d34cfc0dc0a *man/as.egor.egodata.Rd
 34140290c7cb419e041f1a6b7da0f443 *man/as.egor.network.Rd

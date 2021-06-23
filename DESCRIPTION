@@ -1,6 +1,6 @@
 Package: ergm.ego
-Version: 0.9.0
-Date: 2021-06-21
+Version: 1.0.0
+Date: 2021-06-22
 Title: Fit, Simulate and Diagnose Exponential-Family Random Graph
         Models to Egocentrically Sampled Network Data
 Authors@R: c(
@@ -24,7 +24,7 @@ BugReports: https://github.com/statnet/ergm.ego/issues
 RoxygenNote: 7.1.1
 Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2021-06-21 09:05:40 UTC; pavel
+Packaged: 2021-06-22 09:59:56 UTC; pavel
 Author: Pavel N. Krivitsky [aut, cre] (<https://orcid.org/0000-0002-9101-3362>),
   Steven M. Goodreau [ctb],
   Martina Morris [ctb],
@@ -34,4 +34,4 @@ Author: Pavel N. Krivitsky [aut, cre] (<https://orcid.org/0000-0002-9101-3362>),
   Chad Klumb [ctb]
 Maintainer: Pavel N. Krivitsky <p.krivitsky@unsw.edu.au>
 Repository: CRAN
-Date/Publication: 2021-06-21 11:20:05 UTC
+Date/Publication: 2021-06-23 07:00:04 UTC
