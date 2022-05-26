@@ -5,7 +5,7 @@
 #  open source, and has the attribution requirements (GPL Section 7) at
 #  https://statnet.org/attribution .
 #
-#  Copyright 2015-2021 Statnet Commons
+#  Copyright 2015-2022 Statnet Commons
 ################################################################################
 #' @import statnet.common
 .onAttach <- function(lib, pkg){
@@ -22,21 +22,6 @@
   eval(COLLATE_ALL_MY_CONTROLS_EXPR)
 }
 
-
-
-
-
-# To be used inside testthat tests, i.e. within test code of test_that(). Checks
-# environment variable SKIP_ERGM_EGO_LONG_TEST. If it is set to 1 the test is
-# skipped. Not exported, so should be called as `ergm.ego:::long_test()`.
-long_test <- function() {
-  # check envar
-  v <- Sys.getenv("SKIP_ERGM_EGO_LONG_TEST")
-  do_skip <- isTRUE( as.numeric(v) == 1 )
-  if(do_skip) {
-    testthat::skip("Not running this lengthy test because SKIP_ERGM_EGO_LONG_TEST=1")
-  }
-}
 
 # TODO: Figure out some automatic way to keep this in sync with statnet.common.
 #' @name snctrl

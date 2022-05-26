@@ -5,10 +5,8 @@
 #  open source, and has the attribution requirements (GPL Section 7) at
 #  https://statnet.org/attribution .
 #
-#  Copyright 2015-2021 Statnet Commons
+#  Copyright 2015-2022 Statnet Commons
 ################################################################################
-
-library(ergm.ego)
 
 test_that("it just works for model without offsets", {
   data(faux.mesa.high, package="ergm")
@@ -16,7 +14,8 @@ test_that("it just works for model without offsets", {
   egofit <- ergm.ego(
     fmh.ego~edges+degree(0:3)+nodefactor("Race")+nodematch("Race")
     +nodefactor("Sex")+nodematch("Sex")+absdiff("Grade"), 
-    popsize=network.size(faux.mesa.high)
+    popsize=network.size(faux.mesa.high),
+    control=snctrl(MCMLE.maxit=2)
   )
   expect_silent(
     p <- predict(egofit)
@@ -35,7 +34,8 @@ test_that("it just works for model with offsets", {
     + offset(nodematch("Sex",
                        diff = TRUE,
                        levels = c(1, 2))),
-    offset.coef = rep(-Inf, 2)
+    offset.coef = rep(-Inf, 2),
+    control=snctrl(MCMLE.maxit=2)
   )
   expect_silent(
     p <- predict(fit) # data frame

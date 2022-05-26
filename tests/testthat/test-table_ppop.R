@@ -5,7 +5,7 @@
 #  open source, and has the attribution requirements (GPL Section 7) at
 #  https://statnet.org/attribution .
 #
-#  Copyright 2015-2021 Statnet Commons
+#  Copyright 2015-2022 Statnet Commons
 ################################################################################
 test_that("estimation works", {
   
@@ -46,7 +46,7 @@ test_that("coefs are equal", {
   
   # plot(est, tgt); abline(a=0, b=1, lty=2)
   
-  expect_equivalent(
+  expect_equal(ignore_attr=TRUE,
     unname(est)[-(1:2)],
     tgt,
     tolerance = 0.1

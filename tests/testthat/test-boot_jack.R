@@ -5,7 +5,7 @@
 #  open source, and has the attribution requirements (GPL Section 7) at
 #  https://statnet.org/attribution .
 #
-#  Copyright 2015-2021 Statnet Commons
+#  Copyright 2015-2022 Statnet Commons
 ################################################################################
 
 data(faux.mesa.high)
@@ -23,25 +23,25 @@ test_that("equality of results for a two-parameter model", {
     egofit.jack <- ergm.ego(fmh.ego~edges+nodematch("Sex"), 
                             popsize=network.size(faux.mesa.high), control=control.ergm.ego(stats.est="jackknife"))
 
-  expect_equivalent(
+  expect_equal(ignore_attr=TRUE,
     coef(egofit),
     coef(egofit.boot),
     tolerance = 0.02
   )
 
-  expect_equivalent(
+  expect_equal(ignore_attr=TRUE,
     coef(egofit),
     coef(egofit.jack),
     tolerance = 0.02
   )
 
-  expect_equivalent(
+  expect_equal(ignore_attr=TRUE,
     vcov(egofit),
     vcov(egofit.boot),
     tolerance = 0.05
   )
   
-  expect_equivalent(
+  expect_equal(ignore_attr=TRUE,
     vcov(egofit),
     vcov(egofit.jack),
     tolerance = 0.05
@@ -62,25 +62,25 @@ test_that("equality of results for a one-parameter model", {
   egofit.jack <- ergm.ego(fmh.ego~edges, 
                           popsize=network.size(faux.mesa.high), control=control.ergm.ego(stats.est="jackknife"))
   
-  expect_equivalent(
+  expect_equal(ignore_attr=TRUE,
     coef(egofit),
     coef(egofit.boot),
     tolerance = 0.02
   )
   
-  expect_equivalent(
+  expect_equal(ignore_attr=TRUE,
     coef(egofit),
     coef(egofit.jack),
     tolerance = 0.02
   )
   
-  expect_equivalent(
+  expect_equal(ignore_attr=TRUE,
     vcov(egofit),
     vcov(egofit.boot),
     tolerance = 0.05
   )
   
-  expect_equivalent(
+  expect_equal(ignore_attr=TRUE,
     vcov(egofit),
     vcov(egofit.jack),
     tolerance = 0.05

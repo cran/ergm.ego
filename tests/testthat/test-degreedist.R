@@ -5,7 +5,7 @@
 #  open source, and has the attribution requirements (GPL Section 7) at
 #  https://statnet.org/attribution .
 #
-#  Copyright 2015-2021 Statnet Commons
+#  Copyright 2015-2022 Statnet Commons
 ################################################################################
 
 ## |----|--------|---|----------|-----------|
@@ -16,9 +16,6 @@
 ## | 3  | 1      | b | 1        | b         |
 ## | 4  | 2      | b | 2        | a, b      |
 ## |----|--------|---|----------|-----------|
-
-library(ergm.ego)
-local_edition(3)
 
 e <- egor(
   alters=tibble(x=c("a","b","a","b","a","b"),
@@ -85,10 +82,10 @@ test_that("degreedist() works on data based on faux.mesa.high with `by=Sex`", {
 })
 
 test_that("weighted degreedist with weights disabled", {
-  expect_equivalent(unclass(degreedist(e, plot=FALSE, weight=FALSE)), c(1/2,1/2))
+  expect_equal(ignore_attr=TRUE,unclass(degreedist(e, plot=FALSE, weight=FALSE)), c(1/2,1/2))
 })
 
 test_that("weighted degreedist by attribute with weights disabled", {
-  expect_equivalent(unclass(degreedist(e, plot=FALSE, by="x", weight=FALSE)), rbind(c(1/2,1/2),
+  expect_equal(ignore_attr=TRUE,unclass(degreedist(e, plot=FALSE, by="x", weight=FALSE)), rbind(c(1/2,1/2),
                                                                                c(1/2,1/2)))
 })

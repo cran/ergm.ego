@@ -5,10 +5,8 @@
 #  open source, and has the attribution requirements (GPL Section 7) at
 #  https://statnet.org/attribution .
 #
-#  Copyright 2015-2021 Statnet Commons
+#  Copyright 2015-2022 Statnet Commons
 ################################################################################
-
-library(ergm.ego)
 
 nw <- network.initialize(20,directed=FALSE)
 
@@ -17,7 +15,6 @@ nw %v% "a" <- rep(1:2, each=10)
 nw[1:10,11:20] <- 0:1
 
 test_that("dropped ergm terms", {
-  local_edition(3)
   out.coef <- coef(ergm.ego(as.egor(nw)~edges+nodematch("a")))
   out.coef <- c(sum(out.coef[1:2]),out.coef[3])
   expect_equal(coef(ergm(nw~edges+nodematch("a"))), out.coef, tolerance=0.1, ignore_attr=TRUE)

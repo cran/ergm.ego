@@ -5,7 +5,7 @@
 #  open source, and has the attribution requirements (GPL Section 7) at
 #  https://statnet.org/attribution .
 #
-#  Copyright 2015-2021 Statnet Commons
+#  Copyright 2015-2022 Statnet Commons
 ################################################################################
 data(sampson, package="ergm")
 
@@ -22,7 +22,7 @@ for(i in 1:10) {
   s <- summary(fmla)
 
   test_that(paste("it works for a directed network with a <- ", paste(deparse(a), collapse=""), collapse=" "), {
-    expect_equivalent(
+    expect_equal(ignore_attr=TRUE,
       0,
       as.vector( crossprod( c(-1, a), s ) ),
       info = paste(names(s), "=", s)
@@ -44,7 +44,7 @@ for(i in 1:10) {
   s <- summary(f)
 
   test_that(paste("it works for an undirected network with a <- ", paste(deparse(a), collapse=""), collapse=" "), {
-    expect_equivalent(
+    expect_equal(ignore_attr=TRUE,
       0,
       as.vector(crossprod(c(-1, a), s)),
       info = paste(names(s), "=", s)
