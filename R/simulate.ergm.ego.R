@@ -5,7 +5,7 @@
 #  open source, and has the attribution requirements (GPL Section 7) at
 #  https://statnet.org/attribution .
 #
-#  Copyright 2015-2022 Statnet Commons
+#  Copyright 2015-2023 Statnet Commons
 ################################################################################
 
 
@@ -17,20 +17,21 @@
 #' 
 #' @param object An \code{\link{ergm.ego}} fit.
 #' @param nsim Number of realizations to simulate.
-#' @param seed Random seed.
-#' @param popsize Either network size to which to scale the model for
-#'   simulation or a [`data.frame`] with at least those ego attributes
-#'   required to estimate the model, to simulate over a specific set
-#'   of actors.
+#' @template seed
+#' @param popsize,basis A network size to which to scale the model for
+#'   simulation; a [`data.frame`] with at least those ego attributes
+#'   used to estimate the model to simulate over a specific set of
+#'   actors; or a [`network`] object to use as is. `basis` is provided
+#'   for consistency with [ergm()], [ergm.ego()], [simulate.ergm()],
+#'   and others. If both are specified, `popsize` overrules.
 #' @param control A \code{\link{control.simulate.ergm.ego}} control list.
-#' 
 #' @param output one of `"network"`, `"stats"`, `"edgelist"`,
 #'   `"pending_update_network"`, or, for future compatibility,
 #'   `"ergm_state"`. See help for [simulate.ergm()] for explanation.
 #' 
 #' @param constraints,\dots Additional arguments passed to \code{\link[ergm]{san}} and
 #' \code{\link[ergm]{simulate.formula}}.
-#' @param verbose Verbosity of output.
+#' @template verbose
 #' @return The ouput has the same format (with the same options) as
 #' \code{\link[ergm]{simulate.formula}}. If \code{output="stats"} is passed, an
 #' additional attribute, \code{"ppopsize"} is set, giving the actual size of
@@ -54,7 +55,6 @@
 #' @examples
 #' 
 #' data(faux.mesa.high)
-#' fmh.ego <- as.egor(faux.mesa.high)
 #' data(fmhfit)
 #' colMeans(egosim <- simulate(fmhfit, popsize=300,nsim=50,
 #'                        output="stats", control=control.simulate.ergm.ego(
@@ -65,13 +65,17 @@
 #'
 #' @importFrom stats simulate
 #' @export
-simulate.ergm.ego <- function(object, nsim = 1, seed = NULL, constraints=object$constraints, popsize=if(object$popsize==1 || object$popsize==0 || is(object$popsize, "AsIs")) object$ppopsize else object$popsize, control=control.simulate.ergm.ego(), output=c("network","stats","edgelist","pending_update_network", "ergm_state"), ..., verbose=FALSE){
+simulate.ergm.ego <- function(object, nsim = 1, seed = NULL, constraints=object$constraints, popsize=if(object$popsize==1 || object$popsize==0 || is(object$popsize, "AsIs")) object$ppopsize else object$popsize, control=control.simulate.ergm.ego(), output=c("network","stats","edgelist","pending_update_network", "ergm_state"), ..., basis=NULL, verbose=FALSE){
   statnet.common::check.control.class("simulate.ergm.ego", "simulate.ergm.ego")
   output <- match.arg(output)
 
   nsa <- !is.null(object$netsize.adj)
-  
-  if(is.data.frame(popsize)){ # If pseudopoluation composition is given in popsize, use that.
+
+  if(!is.null(basis)) popsize <- basis
+  if(is.network(popsize)){
+    popnw <- popsize
+    popsize <- network.size(popsize)
+  }else if(is.data.frame(popsize)){ # If pseudopoluation composition is given in popsize, use that.
     popnw <- template_network(popsize, nrow(popsize))
     popsize <- nrow(popsize)
   }else{
@@ -87,11 +91,8 @@ simulate.ergm.ego <- function(object, nsim = 1, seed = NULL, constraints=object$
     network.size(popnw)
   }else popsize
 
-  san.stats <-
-    if(length(object$target.stats)>nparam(object, offset=FALSE)) object$target.stats[!object$etamap$offsettheta]
-    else object$target.stats
   # TODO: Make it work with ergm_state output.
-  if(popsize != object$ppopsize) popnw <- san(object$formula, target.stats = san.stats/object$ppopsize*ppopsize,verbose=verbose, constraints=constraints, basis=popnw, control=control$SAN, ..., output="network")
+  if(popsize != object$ppopsize) popnw <- san(object$formula, target.stats = object$target.stats/object$ppopsize*ppopsize,verbose=verbose, constraints=constraints, basis=popnw, control=control$SAN, ..., output="network")
 
   ergm.formula <- if(nsa) nonsimp_update.formula(object$formula,object$netsize.adj) else object$formula
 
@@ -100,7 +101,12 @@ simulate.ergm.ego <- function(object, nsim = 1, seed = NULL, constraints=object$
                          coef(object)[if(nsa) -1 else TRUE]),
                   constraints=constraints, control=control$simulate, basis=popnw, ..., output=output)
   if(is.matrix(out)){
-    out <- out[,if(nsa) -1 else TRUE, drop=FALSE]
+    if(nsa)
+      out <- structure(out[,-1, drop=FALSE],
+                       monitored = attr(out, "monitored")[-1],
+                       formula = attr(out,"formula"), .Basis = attr(out,".Basis"), monitor = attr(out,"monitor"),
+                       constraints = attr(out,"constraints"), reference = attr(out,"reference"))
+
     attr(out, "ppopsize") <- ppopsize
   }
   out

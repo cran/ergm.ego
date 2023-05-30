@@ -9,11 +9,12 @@
   nsim = 1,
   seed = NULL,
   constraints = object$constraints,
-  popsize = if (object$popsize == 1 || object$popsize == 0 || is(object$popsize,
-    "AsIs")) object$ppopsize else object$popsize,
+  popsize = if (object$popsize == 1 || object$popsize == 0 || is(object$popsize, "AsIs"))
+    object$ppopsize else object$popsize,
   control = control.simulate.ergm.ego(),
   output = c("network", "stats", "edgelist", "pending_update_network", "ergm_state"),
   ...,
+  basis = NULL,
   verbose = FALSE
 )
 }
@@ -22,15 +23,18 @@
 
 \item{nsim}{Number of realizations to simulate.}
 
-\item{seed}{Random seed.}
+\item{seed}{Seed value (integer) for the random number generator.  See
+\code{\link[base]{set.seed}}.}
 
 \item{constraints, \dots}{Additional arguments passed to \code{\link[ergm]{san}} and
 \code{\link[ergm]{simulate.formula}}.}
 
-\item{popsize}{Either network size to which to scale the model for
-simulation or a \code{\link{data.frame}} with at least those ego attributes
-required to estimate the model, to simulate over a specific set
-of actors.}
+\item{popsize, basis}{A network size to which to scale the model for
+simulation; a \code{\link{data.frame}} with at least those ego attributes
+used to estimate the model to simulate over a specific set of
+actors; or a \code{\link{network}} object to use as is. \code{basis} is provided
+for consistency with \code{\link[=ergm]{ergm()}}, \code{\link[=ergm.ego]{ergm.ego()}}, \code{\link[=simulate.ergm]{simulate.ergm()}},
+and others. If both are specified, \code{popsize} overrules.}
 
 \item{control}{A \code{\link{control.simulate.ergm.ego}} control list.}
 
@@ -38,7 +42,11 @@ of actors.}
 \code{"pending_update_network"}, or, for future compatibility,
 \code{"ergm_state"}. See help for \code{\link[=simulate.ergm]{simulate.ergm()}} for explanation.}
 
-\item{verbose}{Verbosity of output.}
+\item{verbose}{A logical or an integer to control the amount of
+progress and diagnostic information to be printed. \code{FALSE}/\code{0}
+produces minimal output, with higher values producing more
+detail. Note that very high values (5+) may significantly slow
+down processing.}
 }
 \value{
 The ouput has the same format (with the same options) as
@@ -55,7 +63,6 @@ from an ERGM fit using \code{\link{ergm.ego}}.
 \examples{
 
 data(faux.mesa.high)
-fmh.ego <- as.egor(faux.mesa.high)
 data(fmhfit)
 colMeans(egosim <- simulate(fmhfit, popsize=300,nsim=50,
                        output="stats", control=control.simulate.ergm.ego(

@@ -5,7 +5,7 @@
 #  open source, and has the attribution requirements (GPL Section 7) at
 #  https://statnet.org/attribution .
 #
-#  Copyright 2015-2022 Statnet Commons
+#  Copyright 2015-2023 Statnet Commons
 ################################################################################
 # This file contains the following 8 functions for assessing goodness of fit
 #         <gof>              <summary.gofobject>
@@ -141,8 +141,8 @@ gof.ergm.ego <- function (object, ...,
     GOF<- ~degree
   }
 
-  .gof.egor <- object$egor
-  formula <- nonsimp_update.formula(object$formula, .gof.egor~., from.new=".gof.egor")
+  egor <- object$egor
+  formula <- object$formula
   
   control.transfer <- c("MCMC.burnin", "MCMC.prop", "MCMC.prop.weights", "MCMC.prop.args", "MCMC.packagenames", "MCMC.init.maxedges")
   for(arg in control.transfer)
@@ -166,44 +166,32 @@ gof.ergm.ego <- function (object, ...,
     cat("Calculating observed network statistics.\n")
 
   n <- network.size(object$newnetwork)
+
+  do.sim <- function(mon=NULL){
+    sim <- simulate(object, nsim=control$nsim, seed=control$seed, popsize=object$ppopsize, control=control.simulate.ergm.ego(simulate=set.control.class("control.simulate.formula",control)),...,verbose=verbose, output="stats", monitor=mon)
+    sim[, if(is.null(mon)) TRUE else attr(sim,"monitored"), drop=FALSE]/n
+  }
   
   if ('model' %in% GOF) {
-    obs.model <- summary(formula, scaleto=1)
-    sim.model <- simulate(object, nsim=control$nsim, seed=control$seed, popsize=object$ppopsize, control=control.simulate.ergm.ego(simulate=set.control.class("control.simulate.formula",control)),...,verbose=verbose, output="stats")/n
+    obs.model <- summary(formula, scaleto=1, basis=egor)
+    sim.model <- do.sim()
   }
 
   if ('degree' %in% GOF) {
-    egor <- object$egor
     maxdeg <- max(.degreeseq(egor),3)*2
-    obs.deg <- summary(as.formula(paste0("egor~degree(0:",maxdeg-1,")+degrange(",maxdeg,")")), scaleto=1)
-    sim.deg <- simulate(object, nsim=control$nsim, seed=control$seed, popsize=object$ppopsize, control=control.simulate.ergm.ego(simulate=set.control.class("control.simulate.formula",control)),...,verbose=verbose, output="stats", monitor=as.formula(paste0("~degree(0:",maxdeg-1,")+degrange(",maxdeg,")")))
-    sim.deg <- sim.deg[, ncol(sim.deg)-(maxdeg:0), drop=FALSE]/n
+    f <- as.formula(if(maxdeg >= n-1) paste0("~degree(0:",n-1,")")
+                    else paste0("~degree(0:",maxdeg-1,")+degrange(",maxdeg,")"))
+    obs.deg <- summary(f, scaleto=1, basis=egor)
+    sim.deg <- do.sim(f)
   }
   
   if("espartners" %in% GOF) {
-    egor <- object$egor
     # Maximum esp = max(egodegree) + 1 - 2
     maxdeg <- max(.degreeseq(egor), 3)
     maxesp <- (maxdeg - 1)*2
-    obs.esp <- summary(
-      as.formula(paste0("egor ~ esp(0:", maxesp, ")")),
-      scaleto = 1
-    )
-    sim.esp <- simulate(
-      object, 
-      nsim=control$nsim, 
-      seed=control$seed, 
-      popsize=object$ppopsize, 
-      control = control.simulate.ergm.ego(
-        simulate = set.control.class("control.simulate.formula",control)
-      ),
-      ...,
-      verbose=verbose, 
-      output="stats", 
-      monitor=as.formula(paste0("~ esp(0:",maxesp,")"))
-    )
-    nams <- sort(unique(grep("^esp[0-9]+$", colnames(sim.esp), value = TRUE)))
-    sim.esp <- sim.esp[ , nams] / n
+    f <- as.formula(paste0("egor ~ esp(0:", maxesp, ")"))
+    obs.esp <- summary(f, scaleto = 1, basis=egor)
+    sim.esp <- do.sim(f)
   }
 
   if(verbose)
