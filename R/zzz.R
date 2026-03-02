@@ -5,8 +5,10 @@
 #  source, and has the attribution requirements (GPL Section 7) at
 #  https://statnet.org/attribution .
 #
-#  Copyright 2015-2025 Statnet Commons
+#  Copyright 2015-2026 Statnet Commons
 ################################################################################
+
+#' @importFrom Rdpack reprompt
 #' @import statnet.common
 .onAttach <- function(lib, pkg){
   sm <- statnetStartupMessage("ergm.ego", c("statnet"), TRUE)
